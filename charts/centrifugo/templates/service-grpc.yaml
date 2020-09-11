@@ -1,0 +1,24 @@
+{{- if .Values.grpcService.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "centrifugo.fullname" . }}-grpc-api
+  labels:
+    app: {{ include "centrifugo.name" . }}
+    chart: {{ include "centrifugo.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.grpcService.type }}
+  ports:
+    - port: {{ .Values.grpcService.port }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+      {{- if (and (eq .Values.grpcService.type "NodePort") (not (empty .Values.grpcService.nodePort))) }}
+      nodePort: {{ .Values.grpcService.nodePort }}
+      {{- end }}
+  selector:
+    app: {{ include "centrifugo.name" . }}
+    release: {{ .Release.Name }}
+{{- end }}

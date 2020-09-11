@@ -1,0 +1,24 @@
+{{- if .Values.internalService.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "centrifugo.fullname" . }}-internal
+  labels:
+    app: {{ include "centrifugo.name" . }}
+    chart: {{ include "centrifugo.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.internalService.type }}
+  ports:
+    - port: {{ .Values.internalService.port }}
+      targetPort: http-internal
+      protocol: TCP
+      name: http-internal
+      {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
+      nodePort: {{ .Values.internalService.nodePort }}
+      {{- end }}
+  selector:
+    app: {{ include "centrifugo.name" . }}
+    release: {{ .Release.Name }}
+{{- end }}

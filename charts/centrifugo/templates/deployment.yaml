@@ -1,0 +1,167 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "centrifugo.fullname" . }}
+  labels:
+    app: {{ include "centrifugo.name" . }}
+    chart: {{ include "centrifugo.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ include "centrifugo.name" . }}
+      release: {{ .Release.Name }}
+  {{- if .Values.deploymentStrategy }}
+  strategy:
+    {{ toYaml .Values.deploymentStrategy | indent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: {{ include "centrifugo.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "centrifugo.serviceAccountName" . }}
+      {{- if .Values.securityContext }}
+      securityContext:
+        {{ toYaml .Values.securityContext | indent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      volumes:
+        - name: {{ include "centrifugo.fullname" . }}-config
+          configMap:
+            name: {{ include "centrifugo.fullname" . }}-config  
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - centrifugo
+          args:
+            - --health
+            {{- if .Values.serviceAccount.enabled -}}
+            --prometheus
+            {{- end }}
+            - --port
+            - "{{ .Values.service.port }}"
+            {{- if .Values.internalService.enabled }}
+            - --internal_port
+            - "{{ .Values.internalService.port }}"
+            {{- end }}
+          env:
+            - name: CENTRIFUGO_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: admin_password
+            - name: CENTRIFUGO_ADMIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: admin_secret
+            {{- if .Values.secrets.tokenHmacSecretKey }}
+            - name: CENTRIFUGO_TOKEN_HMAC_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: token_hmac_secret_key
+            {{- end }}
+            {{- if .Values.secrets.apiKey }}
+            - name: CENTRIFUGO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: api_key
+            {{- end }}
+            {{- if .Values.secrets.grpcApiKey }}
+            - name: CENTRIFUGO_GRPC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: grpc_api_key
+            {{- end }}
+            {{- if .Values.secrets.redisUrl }}
+            - name: CENTRIFUGO_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: redis_url
+            {{- end }}
+            {{- if .Values.secrets.redisPassword }}
+            - name: CENTRIFUGO_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: redis_password
+            {{- end }}
+            {{- if .Values.secrets.redisSentinelPassword }}
+            - name: CENTRIFUGO_REDIS_SENTINEL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: redis_sentinel_password
+            {{- end }}
+            {{- if .Values.secrets.natsUrl }}
+            - name: CENTRIFUGO_NATS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.fullname" . }}
+                  key: nats_url
+            {{- end }}
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value }}
+            {{- end }}
+          volumeMounts:
+            - name: "{{ include "centrifugo.fullname" . }}-config"
+              mountPath: "/centrifugo"
+              readOnly: true
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+            {{- if .Values.internalService.enabled }}
+            - name: http-internal
+              containerPort: {{ .Values.internalService.port }}
+            {{- end }}
+            {{- if .Values.grpcService.enabled }}
+            - name: grpc
+              containerPort: {{ .Values.grpcService.port }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ if .Values.internalService.enabled }}{{ .Values.internalService.port }}{{ else }}{{ .Values.service.port }}{{end}}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ if .Values.internalService.enabled }}{{ .Values.internalService.port }}{{ else }}{{ .Values.service.port }}{{end}}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{ toYaml .Values.resources | indent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
