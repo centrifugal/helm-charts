@@ -96,7 +96,7 @@ helm repo add nats https://nats-io.github.io/k8s/helm/charts/
 helm install --name=nats nats/nats --set cluster.enabled=true
 ```
 
-Then start Centrifugo:
+Then start Centrifugo pointing to Nats broker:
 
 ```
 helm install --name centrifugo -f values.yaml ./centrifugo --set config.broker=nats --set config.nats_url=nats://nats:4222 --set replicaCount=3

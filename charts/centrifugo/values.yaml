@@ -30,6 +30,7 @@ grpcService:
 
 ingress:
   enabled: false
+  # example on how to run with custom path prefix:
   # annotations:
   #   nginx.ingress.kubernetes.io/rewrite-target: /$2
   # path: /prefix(/|$)(.*)
