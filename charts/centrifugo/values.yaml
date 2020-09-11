@@ -141,5 +141,5 @@ secrets:
   # Connection string to Nats.
   natsUrl: ""
 
-# additional environment variables to be passed to Centrifugo container.
+# Additional environment variables to be passed to Centrifugo container.
 env: {}
