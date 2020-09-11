@@ -96,8 +96,6 @@ tolerations: []
 affinity: {}
 
 config:
-  log_level: "debug"
-
   # Engine to use. Default memory engine allows running only one Centrifugo pod
   # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
   # documentation: https://centrifugal.github.io/centrifugo/server/engines/
