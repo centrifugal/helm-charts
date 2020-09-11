@@ -1,4 +1,4 @@
-# Centrifugal organization Kubernetes Helm Charts
+# Centrifugal Kubernetes Helm Charts
 
 ![Release Charts](https://github.com/centrifugal/helm-charts/workflows/Release%20Charts/badge.svg?branch=master)
 
