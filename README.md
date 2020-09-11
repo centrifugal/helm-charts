@@ -12,7 +12,7 @@ Please refer to Helm's [documentation](https://helm.sh/docs/) to get started.
 
 Once Helm is set up properly, add the repo as follows:
 
-```console
+```
 helm repo add centrifugal https://centrifugal.github.io/helm-charts
 ```
 
