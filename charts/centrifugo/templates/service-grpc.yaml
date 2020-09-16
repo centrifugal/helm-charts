@@ -8,6 +8,12 @@ metadata:
     chart: {{ include "centrifugo.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+  {{- if .Values.grpcService.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.grpcService.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   type: {{ .Values.grpcService.type }}
   ports:

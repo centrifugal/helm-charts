@@ -51,7 +51,7 @@ spec:
             - centrifugo
           args:
             - --health
-            {{- if .Values.serviceAccount.enabled -}}
+            {{- if .Values.serviceMonitor.enabled -}}
             --prometheus
             {{- end }}
             - --port

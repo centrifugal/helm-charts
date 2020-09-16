@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: centrifugo/centrifugo
-  tag: v2.6.2
+  tag: v2.7.0
   pullPolicy: IfNotPresent
 
 nameOverride: ""
@@ -13,6 +13,7 @@ service:
   type: ClusterIP
   # Static NodePort, if set.
   # nodePort: 30100
+  annotations: {}
 
 internalService:
   enabled: true
@@ -20,6 +21,11 @@ internalService:
   type: ClusterIP
   # Static NodePort, if set.
   # nodePort: 30100
+  annotations: {}
+  # annotations:
+  #   prometheus.io/scrape: "true"
+  #   prometheus.io/path: "/metrics"
+  #   prometheus.io/port: "9000"
 
 grpcService:
   enabled: false
@@ -27,6 +33,7 @@ grpcService:
   type: ClusterIP
   # Static NodePort, if set.
   # nodePort: 30100
+  annotations: {}
 
 ingress:
   enabled: false

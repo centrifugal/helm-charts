@@ -8,6 +8,12 @@ metadata:
     chart: {{ include "centrifugo.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+  {{- if .Values.internalService.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.internalService.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   type: {{ .Values.internalService.type }}
   ports:
