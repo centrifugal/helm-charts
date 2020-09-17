@@ -52,20 +52,31 @@ $ helm upgrade [RELEASE_NAME] [CHART] --install
 
 _See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documentation._
 
+## Concepts
+
+This chart by default starts Centrifugo with Memory engine. This means that you can only run one Centrifugo instance pod in default setup. If you need to run more pods to scale and load-balance connections between them – run Centrifugo with Redis engine or with Nats broker (for at most once PUB/SUB only). See examples below.
+
+Chart splits Centrifugo instance into 2 different services:
+
+* one for client connections from the outside of your cluster
+* internal service for API, metrics, admin web interface, health checks (so these endpoints not available from outside when using ingress)
+
 ## Scale with Redis engine
+
+Run Redis (here we are using Redis chart from bitnami, but you can use any other Redis deployment):
 
 ```
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install --name=redis bitnami/redis --set usePassword=false
 ```
 
-Then start Centrifugo:
+Then start Centrifugo with `redis` engine and pointing it to Redis:
 
 ```
 helm install --name centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_url=redis://redis-master:6379 --set replicaCount=3
 ```
 
-With Redis Sentinel:
+Now example with Redis Sentinel (again using chart from bitnami):
 
 ```
 helm install --name=redis bitnami/redis --set usePassword=false --set cluster.enabled=true --set sentinel.enabled=true
@@ -77,7 +88,7 @@ Then point Centrifugo to Sentinel:
 helm install --name centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_master_name=mymaster --set config.redis_sentinels=redis:26379 --set replicaCount=3
 ```
 
-With Redis Cluster:
+Example with Redis Cluster (using `bitnami/redis-cluster` chart, but again the way you run Redis is up to you actually):
 
 ```
 helm install redis bitnami/redis-cluster --set usePassword=false
