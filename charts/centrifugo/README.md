@@ -61,31 +61,62 @@ Chart splits Centrifugo instance into 2 different services:
 * one for client connections from the outside of your cluster
 * internal service for API, metrics, admin web interface, health checks (so these endpoints not available from outside when using ingress)
 
+## Configuration
+
+Chart follows usual practices when working with Helm. All Centrifugo configuration options can be set. You can set them using custom `values.yaml`:
+
+```yaml
+config:
+    admin: false
+    namespaces:
+        - name: "chat"
+```
+
+And deploy with:
+
+```
+helm install [RELEASE_NAME] -f values.yaml centrifugal/centrifugo
+```
+
+Or you can override options using `--set` flag, for example:
+
+```
+helm install [RELEASE_NAME] centrifugal/centrifugo --set config.namespaces[0].name=chat --set config.namespaces[0].publish=true
+```
+
+This chart also defines several secrets. For example here is an example that configures HTTP API key and token HMAC secret key.
+
+```
+helm install [RELEASE_NAME] centrifugal/centrifugo --set secrets.apiKey=<YOUR_SECRET_API_KEY> --set secrets.tokenHmacSecretKey=<YOUR_SECRET_TOKEN_SECRET_KEY> 
+```
+
+See full list of supported secrets inside chart [values.yaml](https://github.com/centrifugal/helm-charts/blob/master/charts/centrifugo/values.yaml).
+
 ## Scale with Redis engine
 
 Run Redis (here we are using Redis chart from bitnami, but you can use any other Redis deployment):
 
 ```
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install --name=redis bitnami/redis --set usePassword=false
+helm install redis bitnami/redis --set usePassword=false
 ```
 
 Then start Centrifugo with `redis` engine and pointing it to Redis:
 
 ```
-helm install --name centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_url=redis://redis-master:6379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_url=redis://redis-master:6379 --set replicaCount=3
 ```
 
 Now example with Redis Sentinel (again using chart from bitnami):
 
 ```
-helm install --name=redis bitnami/redis --set usePassword=false --set cluster.enabled=true --set sentinel.enabled=true
+helm install redis bitnami/redis --set usePassword=false --set cluster.enabled=true --set sentinel.enabled=true
 ```
 
 Then point Centrifugo to Sentinel:
 
 ```
-helm install --name centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_master_name=mymaster --set config.redis_sentinels=redis:26379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_master_name=mymaster --set config.redis_sentinels=redis:26379 --set replicaCount=3
 ```
 
 Example with Redis Cluster (using `bitnami/redis-cluster` chart, but again the way you run Redis is up to you actually):
@@ -97,18 +128,18 @@ helm install redis bitnami/redis-cluster --set usePassword=false
 Then point Centrifugo to Redis Cluster:
 
 ```
-helm install --name centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_cluster_addrs=redis-redis-cluster-0:6379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_cluster_addrs=redis-redis-cluster-0:6379 --set replicaCount=3
 ```
 
 ## With Nats broker
 
 ```
 helm repo add nats https://nats-io.github.io/k8s/helm/charts/
-helm install --name=nats nats/nats --set cluster.enabled=true
+helm install nats nats/nats --set cluster.enabled=true
 ```
 
 Then start Centrifugo pointing to Nats broker:
 
 ```
-helm install --name centrifugo -f values.yaml ./centrifugo --set config.broker=nats --set config.nats_url=nats://nats:4222 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set config.broker=nats --set config.nats_url=nats://nats:4222 --set replicaCount=3
 ```
