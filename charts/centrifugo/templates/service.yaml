@@ -3,15 +3,10 @@ kind: Service
 metadata:
   name: {{ include "centrifugo.fullname" . }}
   labels:
-    app: {{ include "centrifugo.name" . }}
-    chart: {{ include "centrifugo.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-  {{- if .Values.service.annotations }}
+    {{- include "centrifugo.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
   annotations:
-    {{- range $key, $value := .Values.service.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   type: {{ .Values.service.type }}
@@ -24,5 +19,4 @@ spec:
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
   selector:
-    app: {{ include "centrifugo.name" . }}
-    release: {{ .Release.Name }}
+    {{- include "centrifugo.selectorLabels" . | nindent 4 }}

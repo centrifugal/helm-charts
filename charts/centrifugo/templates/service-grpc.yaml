@@ -4,15 +4,10 @@ kind: Service
 metadata:
   name: {{ include "centrifugo.fullname" . }}-grpc-api
   labels:
-    app: {{ include "centrifugo.name" . }}
-    chart: {{ include "centrifugo.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
-  {{- if .Values.grpcService.annotations }}
+    {{- include "centrifugo.labels" . | nindent 4 }}
+  {{- with .Values.grpcService.annotations }}
   annotations:
-    {{- range $key, $value := .Values.grpcService.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   type: {{ .Values.grpcService.type }}
@@ -25,6 +20,5 @@ spec:
       nodePort: {{ .Values.grpcService.nodePort }}
       {{- end }}
   selector:
-    app: {{ include "centrifugo.name" . }}
-    release: {{ .Release.Name }}
+    {{- include "centrifugo.selectorLabels" . | nindent 4 }}
 {{- end }}

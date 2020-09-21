@@ -4,10 +4,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "centrifugo.fullname" . }}
   labels:
-    app: {{ include "centrifugo.name" . }}
-    chart: {{ include "centrifugo.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    {{- include "centrifugo.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

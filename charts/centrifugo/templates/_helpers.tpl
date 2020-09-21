@@ -32,10 +32,30 @@ Create chart name and version as used by the chart label.
 {{- end -}}
 
 {{/*
+Common labels
+*/}}
+{{- define "centrifugo.labels" -}}
+helm.sh/chart: {{ include "centrifugo.chart" . }}
+{{ include "centrifugo.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "centrifugo.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "centrifugo.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "centrifugo.serviceAccountName" -}}
-{{- if .Values.serviceAccount.enabled }}
+{{- if .Values.serviceAccount.create }}
 {{- default (include "centrifugo.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
