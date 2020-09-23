@@ -13,9 +13,9 @@ spec:
   type: {{ .Values.internalService.type }}
   ports:
     - port: {{ .Values.internalService.port }}
-      targetPort: http-internal
+      targetPort: internal
       protocol: TCP
-      name: http-internal
+      name: internal
       {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
       nodePort: {{ .Values.internalService.nodePort }}
       {{- end }}

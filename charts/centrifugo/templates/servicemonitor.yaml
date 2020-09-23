@@ -13,7 +13,7 @@ metadata:
     {{- end }}
 spec:
   endpoints:
-    - port: {{ if .Values.internalService.enabled }}http-internal{{ else }}http{{ end }}
+    - port: internal
       {{- if .Values.serviceMonitor.interval }}
       interval: {{ .Values.serviceMonitor.interval }}
       {{- end }}

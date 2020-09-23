@@ -48,15 +48,14 @@ spec:
             - centrifugo
           args:
             - --health
-            {{- if .Values.serviceMonitor.enabled -}}
-            --prometheus
-            {{- end }}
+            - --prometheus
             - --port
-            - "{{ .Values.service.port }}"
-            {{- if .Values.internalService.enabled }}
+            - "{{ .Values.centrifugo.ports.external }}"
             - --internal_port
-            - "{{ .Values.internalService.port }}"
-            {{- end }}
+            - "{{ .Values.centrifugo.ports.internal }}"
+            - --grpc_api
+            - --grpc_api_port
+            - "{{ .Values.centrifugo.ports.grpc }}"
           env:
             - name: CENTRIFUGO_ADMIN_PASSWORD
               valueFrom:
@@ -68,56 +67,56 @@ spec:
                 secretKeyRef:
                   name: {{ include "centrifugo.fullname" . }}
                   key: admin_secret
-            {{- if .Values.secrets.tokenHmacSecretKey }}
+            {{- if .Values.centrifugo.secrets.tokenHmacSecretKey }}
             - name: CENTRIFUGO_TOKEN_HMAC_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.fullname" . }}
                   key: token_hmac_secret_key
             {{- end }}
-            {{- if .Values.secrets.apiKey }}
+            {{- if .Values.centrifugo.secrets.apiKey }}
             - name: CENTRIFUGO_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.fullname" . }}
                   key: api_key
             {{- end }}
-            {{- if .Values.secrets.grpcApiKey }}
+            {{- if .Values.centrifugo.secrets.grpcApiKey }}
             - name: CENTRIFUGO_GRPC_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.fullname" . }}
                   key: grpc_api_key
             {{- end }}
-            {{- if .Values.secrets.redisUrl }}
+            {{- if .Values.centrifugo.secrets.redisUrl }}
             - name: CENTRIFUGO_REDIS_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.fullname" . }}
                   key: redis_url
             {{- end }}
-            {{- if .Values.secrets.redisPassword }}
+            {{- if .Values.centrifugo.secrets.redisPassword }}
             - name: CENTRIFUGO_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.fullname" . }}
                   key: redis_password
             {{- end }}
-            {{- if .Values.secrets.redisSentinelPassword }}
+            {{- if .Values.centrifugo.secrets.redisSentinelPassword }}
             - name: CENTRIFUGO_REDIS_SENTINEL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.fullname" . }}
                   key: redis_sentinel_password
             {{- end }}
-            {{- if .Values.secrets.natsUrl }}
+            {{- if .Values.centrifugo.secrets.natsUrl }}
             - name: CENTRIFUGO_NATS_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.fullname" . }}
                   key: nats_url
             {{- end }}
-            {{- range $key, $value := .Values.env }}
+            {{- range $key, $value := .Values.centrifugo.env }}
             - name: {{ $key }}
               value: {{ $value }}
             {{- end }}
@@ -126,26 +125,22 @@ spec:
               mountPath: "/centrifugo"
               readOnly: true
           ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-            {{- if .Values.internalService.enabled }}
-            - name: http-internal
-              containerPort: {{ .Values.internalService.port }}
-            {{- end }}
-            {{- if .Values.grpcService.enabled }}
+            - name: external
+              containerPort: {{ .Values.centrifugo.ports.external }}
+            - name: internal
+              containerPort: {{ .Values.centrifugo.ports.internal }}
             - name: grpc
-              containerPort: {{ .Values.grpcService.port }}
-            {{- end }}
+              containerPort: {{ .Values.centrifugo.ports.grpc }}
           livenessProbe:
             httpGet:
               path: /health
-              port: {{ if .Values.internalService.enabled }}{{ .Values.internalService.port }}{{ else }}{{ .Values.service.port }}{{end}}
+              port: {{ .Values.centrifugo.ports.internal }}
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ if .Values.internalService.enabled }}{{ .Values.internalService.port }}{{ else }}{{ .Values.service.port }}{{end}}
+              port: {{ .Values.centrifugo.ports.internal }}
             initialDelaySeconds: 3
             periodSeconds: 10
           resources:

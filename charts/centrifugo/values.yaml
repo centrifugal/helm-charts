@@ -11,18 +11,24 @@ nameOverride: ""
 fullnameOverride: ""
 
 service:
-  port: 8000
   type: ClusterIP
-  # Static NodePort, if set.
-  # nodePort: 30100
+  externalPort: 8000
+  internalPort: 9000
+  grpcPort: 10000
+  # externalNodePort: 30100
+  # internalNodePort: 30101
+  # grpcNodePort: 30102
   annotations: {}
+    # prometheus.io/scrape: "true"
+    # prometheus.io/path: "/metrics"
+    # prometheus.io/port: "9000"
 
 internalService:
-  enabled: true
+  enabled: false
   port: 9000
   type: ClusterIP
   # Static NodePort, if set.
-  # nodePort: 30100
+  # nodePort: 30101
   annotations: {}
     # prometheus.io/scrape: "true"
     # prometheus.io/path: "/metrics"
@@ -33,7 +39,7 @@ grpcService:
   port: 10000
   type: ClusterIP
   # Static NodePort, if set.
-  # nodePort: 30100
+  # nodePort: 30102
   annotations: {}
 
 ingress:
@@ -115,51 +121,58 @@ tolerations: []
 
 affinity: {}
 
-config:
-  # Engine to use. Default memory engine allows running only one Centrifugo pod.
-  # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
-  # documentation: https://centrifugal.github.io/centrifugo/server/engines/
-  engine: "memory"
+centrifugo:
+  # Additional environment variables to be passed to Centrifugo container.
+  env: {}
 
-  # Broker to use, not used by default.
-  broker: ""
+  # Centrifugo container ports.
+  ports:
+    external: 8000
+    internal: 9000
+    grpc: 10000
 
-  # Use offset protocol field.
-  v3_use_offset: true
+  config:
+    # Engine to use. Default memory engine allows running only one Centrifugo pod.
+    # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
+    # documentation: https://centrifugal.github.io/centrifugo/server/engines/
+    engine: "memory"
 
-  # Enable admin web interface by default.
-  admin: true
+    # Broker to use, not used by default.
+    broker: ""
 
-  # Array of namespaces.
-  namespaces: []
+    # Use offset protocol field.
+    v3_use_offset: true
 
-secrets:
-  # Secret key for HMAC tokens.
-  tokenHmacSecretKey: ""
+    # Enable admin web interface by default.
+    admin: true
 
-  # Admin password used to protect access to web interface.
-  adminPassword: ""
+    # Array of namespaces.
+    namespaces: []
 
-  # Admin secret used to create auth tokens on user login into admin web interface.
-  adminSecret: ""
+  secrets:
+    # Secret key for HMAC tokens.
+    tokenHmacSecretKey: ""
 
-  # Centrifugo api_key for Centrifugo API endpoint authorization.
-  apiKey: ""
+    # Admin password used to protect access to web interface.
+    adminPassword: ""
 
-  # Centrifugo grpc_api_key for Centrifugo GRPC API authorization.
-  grpcApiKey: ""
+    # Admin secret used to create auth tokens on user login into admin web interface.
+    adminSecret: ""
 
-  # Connection string to Redis.
-  redisUrl: ""
+    # Centrifugo api_key for Centrifugo API endpoint authorization.
+    apiKey: ""
 
-  # Password for Redis.
-  redisPassword: ""
+    # Centrifugo grpc_api_key for Centrifugo GRPC API authorization.
+    grpcApiKey: ""
 
-  # Password for Redis Sentinel.
-  redisSentinelPassword: ""
+    # Connection string to Redis.
+    redisUrl: ""
 
-  # Connection string to Nats.
-  natsUrl: ""
+    # Password for Redis.
+    redisPassword: ""
 
-# Additional environment variables to be passed to Centrifugo container.
-env: {}
+    # Password for Redis Sentinel.
+    redisSentinelPassword: ""
+
+    # Connection string to Nats.
+    natsUrl: ""

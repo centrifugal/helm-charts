@@ -11,12 +11,30 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - port: {{ .Values.service.externalPort }}
+      targetPort: external
       protocol: TCP
-      name: http
-      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
-      nodePort: {{ .Values.service.nodePort }}
+      name: external
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.externalNodePort))) }}
+      nodePort: {{ .Values.service.externalNodePort }}
       {{- end }}
+    {{- if not .Values.internalService.enabled }}
+    - port: {{ .Values.service.internalPort }}
+      targetPort: internal
+      protocol: TCP
+      name: internal
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.internalNodePort))) }}
+      nodePort: {{ .Values.service.internalNodePort }}
+      {{- end }}
+    {{- end }}
+    {{- if not .Values.grpcService.enabled }}
+    - port: {{ .Values.service.grpcPort }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.grpcNodePort))) }}
+      nodePort: {{ .Values.service.grpcNodePort }}
+      {{- end }}
+    {{- end }}
   selector:
     {{- include "centrifugo.selectorLabels" . | nindent 4 }}

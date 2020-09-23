@@ -56,20 +56,25 @@ _See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documen
 
 This chart by default starts Centrifugo with Memory engine. This means that you can only run one Centrifugo instance pod in default setup. If you need to run more pods to scale and load-balance connections between them – run Centrifugo with Redis engine or with Nats broker (for at most once PUB/SUB only). See examples below.
 
-Chart splits Centrifugo instance into 2 different services:
+Centrifugo service exposes 3 ports: 
 
-* one for client connections from the outside of your cluster
-* internal service for API, metrics, admin web interface, health checks (so these endpoints not available from outside when using ingress)
+* for client connections from the outside of your cluster. This is called external port: 8000 by default.
+* internal port for API, Prometheus metrics, admin web interface, health checks. So these endpoints not available from the outside when enabling ingress. This is called internal port: 9000 by default.
+* GRPC API port: 10000 by default.
+
+Ingress proxies on external port.
 
 ## Configuration
 
 Chart follows usual practices when working with Helm. All Centrifugo configuration options can be set. You can set them using custom `values.yaml`:
 
 ```yaml
-config:
-    admin: false
-    namespaces:
-        - name: "chat"
+centrifugo:
+  config:
+      admin: false
+      namespaces:
+          - name: "chat"
+            publish: true
 ```
 
 And deploy with:
@@ -81,13 +86,13 @@ helm install [RELEASE_NAME] -f values.yaml centrifugal/centrifugo
 Or you can override options using `--set` flag, for example:
 
 ```
-helm install [RELEASE_NAME] centrifugal/centrifugo --set config.namespaces[0].name=chat --set config.namespaces[0].publish=true
+helm install [RELEASE_NAME] centrifugal/centrifugo --set centrifugo.config.namespaces[0].name=chat --set centrifugo.config.namespaces[0].publish=true
 ```
 
 This chart also defines several secrets. For example here is an example that configures HTTP API key and token HMAC secret key.
 
 ```
-helm install [RELEASE_NAME] centrifugal/centrifugo --set secrets.apiKey=<YOUR_SECRET_API_KEY> --set secrets.tokenHmacSecretKey=<YOUR_SECRET_TOKEN_SECRET_KEY> 
+helm install [RELEASE_NAME] centrifugal/centrifugo --set centrifugo.secrets.apiKey=<YOUR_SECRET_API_KEY> --set centrifugo.secrets.tokenHmacSecretKey=<YOUR_SECRET_TOKEN_SECRET_KEY> 
 ```
 
 See full list of supported secrets inside chart [values.yaml](https://github.com/centrifugal/helm-charts/blob/master/charts/centrifugo/values.yaml).
@@ -104,7 +109,7 @@ helm install redis bitnami/redis --set usePassword=false
 Then start Centrifugo with `redis` engine and pointing it to Redis:
 
 ```
-helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_url=redis://redis-master:6379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set centrifugo.config.engine=redis --set centrifugo.config.redis_url=redis://redis-master:6379 --set replicaCount=3
 ```
 
 Now example with Redis Sentinel (again using chart from bitnami):
@@ -116,7 +121,7 @@ helm install redis bitnami/redis --set usePassword=false --set cluster.enabled=t
 Then point Centrifugo to Sentinel:
 
 ```
-helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_master_name=mymaster --set config.redis_sentinels=redis:26379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set centrifugo.config.engine=redis --set centrifugo.config.redis_master_name=mymaster --set centrifugo.config.redis_sentinels=redis:26379 --set replicaCount=3
 ```
 
 Example with Redis Cluster (using `bitnami/redis-cluster` chart, but again the way you run Redis is up to you actually):
@@ -128,8 +133,10 @@ helm install redis bitnami/redis-cluster --set usePassword=false
 Then point Centrifugo to Redis Cluster:
 
 ```
-helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_cluster_addrs=redis-redis-cluster-0:6379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set centrifugo.config.engine=redis --set centrifugo.config.redis_cluster_addrs=redis-redis-cluster-0:6379 --set replicaCount=3
 ```
+
+Note: it's possible to set Redis URL and Redis/Sentinel passwords over secrets if needed.
 
 ## With Nats broker
 
@@ -141,5 +148,7 @@ helm install nats nats/nats --set cluster.enabled=true
 Then start Centrifugo pointing to Nats broker:
 
 ```
-helm install centrifugo -f values.yaml ./centrifugo --set config.broker=nats --set config.nats_url=nats://nats:4222 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set centrifugo.config.broker=nats --set centrifugo.config.nats_url=nats://nats:4222 --set replicaCount=3
 ```
+
+Note: it's possible to set Nats URL over secrets if needed.
