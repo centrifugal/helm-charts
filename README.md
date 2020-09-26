@@ -16,7 +16,9 @@ Once Helm is set up properly, add the repo as follows:
 helm repo add centrifugal https://centrifugal.github.io/helm-charts
 ```
 
-You can then run `helm search repo centrifugal` to see the charts. See documentation of each specific chart in its own README.
+You can then run `helm search repo centrifugal` to see the charts. See documentation for each specific chart:
+
+* [Centrifugo](https://github.com/centrifugal/helm-charts/tree/master/charts/centrifugo)
 
 ## License
 
