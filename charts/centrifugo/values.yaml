@@ -131,6 +131,7 @@ centrifugo:
     internal: 9000
     grpc: 10000
 
+  # Centrifugo configuration, will be transformed into config.json file.
   config:
     # Engine to use. Default memory engine allows running only one Centrifugo pod.
     # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
@@ -150,6 +151,7 @@ centrifugo:
     # Array of namespaces.
     namespaces: []
 
+  # Centrifugo secrets.
   secrets:
     # Secret key for HMAC tokens.
     tokenHmacSecretKey: ""
