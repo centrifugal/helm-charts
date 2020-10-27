@@ -9,6 +9,7 @@ image:
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+namespaceOverride: ""
 
 service:
   type: ClusterIP
