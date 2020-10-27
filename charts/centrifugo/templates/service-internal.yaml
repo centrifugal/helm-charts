@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "centrifugo.fullname" . }}-internal
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
   {{- with .Values.internalService.annotations }}
