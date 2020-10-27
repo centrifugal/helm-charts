@@ -6,6 +6,6 @@ appVersion: 2.7.2
 home: https://centrifugal.github.io/centrifugo/
 icon: https://centrifugal.github.io/centrifugo/images/favicon.png
 maintainers:
-  - name: Alexander Emelin
+  - name: FZambia
     email: frvzmb@gmail.com
 engine: gotpl
