@@ -7,4 +7,4 @@ metadata:
     {{- include "centrifugo.labels" . | nindent 4 }}
 data:
   config.json: |-
-{{ toJson .Values.centrifugo.config| indent 4 }}
+{{ toJson .Values.config| indent 4 }}
