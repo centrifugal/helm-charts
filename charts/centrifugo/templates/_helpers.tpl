@@ -112,4 +112,12 @@ imagePullSecrets:
 {{- end -}}
 {{- end -}}
 
+{{- define "centrifugo.secretName" -}}
+{{- if .Values.existingSecret -}}
+    {{- printf "%s" (tpl .Values.existingSecret $) -}}
+{{- else -}}
+    {{- printf "%s" (include "centrifugo.fullname" .) -}}
+{{- end -}}
+{{- end -}}
+
 

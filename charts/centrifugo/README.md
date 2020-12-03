@@ -90,6 +90,16 @@ The following table lists the configurable parameters of the Centrifugo chart an
 | `grpcService.nodePort`                      | GRPC API K8s service node port                                                                                          | `nil`                                                        |
 | `env`                                       | Additional environment variables to be passed to Centrifugo container.                                                  | `nil`                                                        |
 | `config`                                    | Centrifugo configuration, will be transformed into config.json file                                                     | `{"admin":true,"broker":"","engine":"memory","namespaces":[],"v3_use_offset":true}`                                                        |
+| `existingSecret`                            | Name of existing secret to use for secret's parameters. The secret has to contain the keys below                        | `nil`                                                         |
+| `secret.tokenHmacSecretKey`                 | Secret key for HMAC tokens.                                                                                             | `nil`                                                         |
+| `secret.adminPassword`                      | Admin password used to protect access to web interface.                                                                 | `nil`                                                         |
+| `secret.adminSecret`                        | Admin secret used to create auth tokens on user login into admin web interface.                                         | `nil`                                                         |
+| `secret.apiKey`                             | Centrifugo api_key for Centrifugo API endpoint authorization.                                                           | `nil`                                                         |
+| `secret.grpcApiKey`                         | Centrifugo grpc_api_key for Centrifugo GRPC API authorization.                                                          | `nil`                                                         |
+| `secret.redisUrl`                           | Connection string to Redis.                                                                                             | `nil`                                                         |
+| `secret.redisPassword`                      | Password for Redis.                                                                                                     | `nil`                                                         |
+| `secret.natsUrl`                            | Connection string to Nats.                                                                                              | `nil`                                                         |
+
 
 ### Metrics parameters
 

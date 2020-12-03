@@ -58,60 +58,60 @@ spec:
             - name: CENTRIFUGO_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: admin_password
             - name: CENTRIFUGO_ADMIN_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: admin_secret
-            {{- if .Values.centrifugo.secrets.tokenHmacSecretKey }}
+            {{- if .Values.secrets.tokenHmacSecretKey }}
             - name: CENTRIFUGO_TOKEN_HMAC_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: token_hmac_secret_key
             {{- end }}
-            {{- if .Values.centrifugo.secrets.apiKey }}
+            {{- if .Values.secrets.apiKey }}
             - name: CENTRIFUGO_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: api_key
             {{- end }}
-            {{- if .Values.centrifugo.secrets.grpcApiKey }}
+            {{- if .Values.secrets.grpcApiKey }}
             - name: CENTRIFUGO_GRPC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: grpc_api_key
             {{- end }}
-            {{- if .Values.centrifugo.secrets.redisUrl }}
+            {{- if .Values.secrets.redisUrl }}
             - name: CENTRIFUGO_REDIS_URL
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: redis_url
             {{- end }}
-            {{- if .Values.centrifugo.secrets.redisPassword }}
+            {{- if .Values.secrets.redisPassword }}
             - name: CENTRIFUGO_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: redis_password
             {{- end }}
-            {{- if .Values.centrifugo.secrets.redisSentinelPassword }}
+            {{- if .Values.secrets.redisSentinelPassword }}
             - name: CENTRIFUGO_REDIS_SENTINEL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: redis_sentinel_password
             {{- end }}
-            {{- if .Values.centrifugo.secrets.natsUrl }}
+            {{- if .Values.secrets.natsUrl }}
             - name: CENTRIFUGO_NATS_URL
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "centrifugo.fullname" . }}
+                  name: {{ include "centrifugo.secretName" . }}
                   key: nats_url
             {{- end }}
             {{- range $key, $value := .Values.env }}

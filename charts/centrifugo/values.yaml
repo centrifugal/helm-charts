@@ -161,32 +161,33 @@ config:
   # Array of namespaces.
   namespaces: []
 
-centrifugo:
-  # Centrifugo secrets.
-  secrets:
-    # Secret key for HMAC tokens.
-    tokenHmacSecretKey: ""
+# existingSecret: my-secret
 
-    # Admin password used to protect access to web interface.
-    adminPassword: ""
+# Centrifugo secrets.
+secrets:
+  # Secret key for HMAC tokens.
+  tokenHmacSecretKey: ""
 
-    # Admin secret used to create auth tokens on user login into admin web interface.
-    adminSecret: ""
+  # Admin password used to protect access to web interface.
+  adminPassword: ""
 
-    # Centrifugo api_key for Centrifugo API endpoint authorization.
-    apiKey: ""
+  # Admin secret used to create auth tokens on user login into admin web interface.
+  adminSecret: ""
 
-    # Centrifugo grpc_api_key for Centrifugo GRPC API authorization.
-    grpcApiKey: ""
+  # Centrifugo api_key for Centrifugo API endpoint authorization.
+  apiKey: ""
 
-    # Connection string to Redis.
-    redisUrl: ""
+  # Centrifugo grpc_api_key for Centrifugo GRPC API authorization.
+  grpcApiKey: ""
 
-    # Password for Redis.
-    redisPassword: ""
+  # Connection string to Redis.
+  redisUrl: ""
 
-    # Password for Redis Sentinel.
-    redisSentinelPassword: ""
+  # Password for Redis.
+  redisPassword: ""
 
-    # Connection string to Nats.
-    natsUrl: ""
+  # Password for Redis Sentinel.
+  redisSentinelPassword: ""
+
+  # Connection string to Nats.
+  natsUrl: ""
