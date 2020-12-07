@@ -14,7 +14,7 @@ image:
   repository: centrifugo/centrifugo
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "v2.7.2"
+  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""
