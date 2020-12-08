@@ -35,6 +35,10 @@ service:
   ## Provide any additional annotations which may be required
   ##
   annotations: {}
+  ##
+  ## Separate service. It could be useful for configuring same port number for all services.
+  separateServices: false
+
 
 internalService:
   enabled: true

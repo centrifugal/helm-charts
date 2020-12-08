@@ -1,4 +1,4 @@
-{{- if .Values.grpcService.enabled -}}
+{{- if and .Values.service.separateServices .Values.grpcService.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:

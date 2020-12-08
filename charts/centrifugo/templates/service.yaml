@@ -19,5 +19,21 @@ spec:
       {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
+{{- if not .Values.service.separateServices }}
+    - port: {{ .Values.internalService.port }}
+      targetPort: internal
+      protocol: TCP
+      name: internal
+      {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
+      nodePort: {{ .Values.internalService.nodePort }}
+      {{- end }}
+    - port: {{ .Values.grpcService.port }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+      {{- if (and (eq .Values.grpcService.type "NodePort") (not (empty .Values.grpcService.nodePort))) }}
+      nodePort: {{ .Values.grpcService.nodePort }}
+      {{- end }}
+{{- end }}
   selector:
     {{- include "centrifugo.selectorLabels" . | nindent 4 }}
