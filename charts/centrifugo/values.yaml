@@ -37,7 +37,7 @@ service:
   annotations: {}
 
 internalService:
-  enabled: false
+  enabled: true
   port: 9000
   type: ClusterIP
   nodePort: ""
