@@ -36,12 +36,12 @@ service:
   ##
   annotations: {}
   ##
-  ## Separate service. It could be useful for configuring same port number for all services.
-  separateServices: false
-
+  ## Use separate service for internal endpoints. It could be useful for configuring same port number for all services.
+  useSeparateInternalService: false
+  ## Use separate service for GRPC endpoints. It could be useful for configuring same port number for all services.
+  useSeparateGrpcService: false
 
 internalService:
-  enabled: true
   port: 9000
   type: ClusterIP
   nodePort: ""
@@ -53,7 +53,6 @@ internalService:
     # prometheus.io/port: "9000"
 
 grpcService:
-  enabled: false
   port: 10000
   type: ClusterIP
   nodePort: ""

@@ -1,4 +1,4 @@
-{{- if and .Values.service.separateServices .Values.internalService.enabled -}}
+{{- if .Values.service.useSeparateInternalService -}}
 apiVersion: v1
 kind: Service
 metadata:

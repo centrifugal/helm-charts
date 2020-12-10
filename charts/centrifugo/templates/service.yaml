@@ -19,7 +19,7 @@ spec:
       {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
-{{- if not .Values.service.separateServices }}
+{{- if not .Values.service.useSeparateInternalService }}
     - port: {{ .Values.internalService.port }}
       targetPort: internal
       protocol: TCP
@@ -27,6 +27,8 @@ spec:
       {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
       nodePort: {{ .Values.internalService.nodePort }}
       {{- end }}
+{{- end }}
+{{- if not .Values.service.useSeparateGrpcService }}
     - port: {{ .Values.grpcService.port }}
       targetPort: grpc
       protocol: TCP
