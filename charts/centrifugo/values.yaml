@@ -126,14 +126,32 @@ deploymentStrategy: {}
   #   maxUnavailable: 1
 
 metrics:
-  enabled:
+  enabled: false
   serviceMonitor:
     enabled: false
-    # namespace: monitoring
-    # interval: 10
+    ## Specify the namespace in which the serviceMonitor resource will be created
+    ##
+    # namespace: ""
+    ## Specify the interval at which metrics should be scraped
+    ##
+    interval: 30s
+    ## Specify the timeout after which the scrape is ended
+    ##
+    # scrapeTimeout: 30s
+    ## Specify Metric Relabellings to add to the scrape endpoint
+    ##
+    # relabellings:
+    ## Specify honorLabels parameter to add the scrape endpoint
+    ##
+    honorLabels: false
+    ## Specify the release for ServiceMonitor. Sometimes it should be custom for prometheus operator to work
+    ##
+    # release: ""
+    ## Used to pass Labels that are used by the Prometheus installed in your cluster to select Service Monitors to work with
+    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+    ##
+    additionalLabels: {}
 
-  # Set labels for the ServiceMonitor, use this to define your scrape label for Prometheus Operator.
-  labels: {}
 
 nodeSelector: {}
 

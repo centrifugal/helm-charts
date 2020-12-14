@@ -219,3 +219,13 @@ helm install centrifugo -f values.yaml ./centrifugo --set config.broker=nats --s
 ```
 
 Note: it's possible to set Nats URL over secrets if needed.
+
+## Upgrading
+
+### To 6.0.0
+- Several parameters were renamed or disappeared in favor of new ones on this major version:
+  - Three type of services were move to their own block.
+  - To enable separate service use `useSeparateInternalService` and `useSeparateGrpcService` flags.
+  - `ServiceMonitor` move to block `metrics` with additional parameters, `labels` renamed to `additionalLabels`  - removed configuration block `centrifugo`, all configuration under that block move to top level.
+
+[On November 13, 2020, Helm v2 support was formally finished](https://github.com/helm/charts#status-of-the-project), this major version is the result of the required changes applied to the Helm Chart to be able to incorporate the different features added in Helm v3 and to be consistent with the Helm project itself regarding the Helm v2 EOL.
