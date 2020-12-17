@@ -1,7 +1,7 @@
 apiVersion: v1
 name: centrifugo
 description: Centrifugo is a scalable real-time messaging server in language-agnostic way
-version: 5.0.2
+version: 5.0.3
 appVersion: 2.7.2
 home: https://centrifugal.github.io/centrifugo/
 icon: https://centrifugal.github.io/centrifugo/images/favicon.png

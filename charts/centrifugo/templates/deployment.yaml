@@ -22,7 +22,7 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
-        {{ toYaml . | indent 8 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
       labels:
         {{- include "centrifugo.selectorLabels" . | nindent 8 }}
@@ -145,7 +145,7 @@ spec:
             initialDelaySeconds: 3
             periodSeconds: 10
           resources:
-            {{ toYaml .Values.resources | indent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
