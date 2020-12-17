@@ -1,6 +1,16 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+##
+# global:
+#   imageRegistry: myRegistryName
+#   imagePullSecrets:
+#     - myRegistryKeySecretName
+
 replicaCount: 1
 
 image:
+  registry: docker.io
   repository: centrifugo/centrifugo
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
@@ -12,22 +22,29 @@ fullnameOverride: ""
 namespaceOverride: ""
 
 service:
+  ## Service type
+  ##
   type: ClusterIP
-  externalPort: 8000
-  internalPort: 9000
-  grpcPort: 10000
-  # externalNodePort: 30100
-  # internalNodePort: 30101
-  # grpcNodePort: 30102
+  ## Service port
+  ##
+  port: 8000
+  ## Specify the nodePort value for the LoadBalancer and NodePort service types.
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
+  ##
+  nodePort: ""
+  ## Provide any additional annotations which may be required
+  ##
   annotations: {}
-    # prometheus.io/scrape: "true"
-    # prometheus.io/path: "/metrics"
-    # prometheus.io/port: "9000"
+  ##
+  ## Use separate service for internal endpoints. It could be useful for configuring same port number for all services.
+  useSeparateInternalService: false
+  ## Use separate service for GRPC endpoints. It could be useful for configuring same port number for all services.
+  useSeparateGrpcService: false
 
 internalService:
-  enabled: false
   port: 9000
   type: ClusterIP
+  nodePort: ""
   # Static NodePort, if set.
   # nodePort: 30101
   annotations: {}
@@ -36,9 +53,9 @@ internalService:
     # prometheus.io/port: "9000"
 
 grpcService:
-  enabled: false
   port: 10000
   type: ClusterIP
+  nodePort: ""
   # Static NodePort, if set.
   # nodePort: 30102
   annotations: {}
@@ -108,13 +125,33 @@ deploymentStrategy: {}
   #   maxSurge: 0
   #   maxUnavailable: 1
 
-serviceMonitor:
+metrics:
   enabled: false
-  # namespace: monitoring
-  # interval: 10
+  serviceMonitor:
+    enabled: false
+    ## Specify the namespace in which the serviceMonitor resource will be created
+    ##
+    # namespace: ""
+    ## Specify the interval at which metrics should be scraped
+    ##
+    interval: 30s
+    ## Specify the timeout after which the scrape is ended
+    ##
+    # scrapeTimeout: 30s
+    ## Specify Metric Relabellings to add to the scrape endpoint
+    ##
+    # relabellings:
+    ## Specify honorLabels parameter to add the scrape endpoint
+    ##
+    honorLabels: false
+    ## Specify the release for ServiceMonitor. Sometimes it should be custom for prometheus operator to work
+    ##
+    # release: ""
+    ## Used to pass Labels that are used by the Prometheus installed in your cluster to select Service Monitors to work with
+    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+    ##
+    additionalLabels: {}
 
-  # Set labels for the ServiceMonitor, use this to define your scrape label for Prometheus Operator.
-  labels: {}
 
 nodeSelector: {}
 
@@ -122,61 +159,56 @@ tolerations: []
 
 affinity: {}
 
-centrifugo:
-  # Additional environment variables to be passed to Centrifugo container.
-  env: {}
+# Additional environment variables to be passed to Centrifugo container.
+env: {}
 
-  # Centrifugo container ports.
-  ports:
-    external: 8000
-    internal: 9000
-    grpc: 10000
+# Centrifugo configuration, will be transformed into config.json file.
+config:
+  # Engine to use. Default memory engine allows running only one Centrifugo pod.
+  # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
+  # documentation: https://centrifugal.github.io/centrifugo/server/engines/
+  engine: "memory"
 
-  # Centrifugo configuration, will be transformed into config.json file.
-  config:
-    # Engine to use. Default memory engine allows running only one Centrifugo pod.
-    # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
-    # documentation: https://centrifugal.github.io/centrifugo/server/engines/
-    engine: "memory"
+  # Broker to use, not used by default. You can enable Nats broker settings
+  # this option to "nats". Refer to https://centrifugal.github.io/centrifugo/server/engines/
+  broker: ""
 
-    # Broker to use, not used by default. You can enable Nats broker settings
-    # this option to "nats". Refer to https://centrifugal.github.io/centrifugo/server/engines/
-    broker: ""
+  # Use offset protocol field.
+  v3_use_offset: true
 
-    # Use offset protocol field.
-    v3_use_offset: true
+  # Enable admin web interface by default.
+  admin: true
 
-    # Enable admin web interface by default.
-    admin: true
+  # Array of namespaces.
+  namespaces: []
 
-    # Array of namespaces.
-    namespaces: []
+# existingSecret: my-secret
 
-  # Centrifugo secrets.
-  secrets:
-    # Secret key for HMAC tokens.
-    tokenHmacSecretKey: ""
+# Centrifugo secrets.
+secrets:
+  # Secret key for HMAC tokens.
+  tokenHmacSecretKey: ""
 
-    # Admin password used to protect access to web interface.
-    adminPassword: ""
+  # Admin password used to protect access to web interface.
+  adminPassword: ""
 
-    # Admin secret used to create auth tokens on user login into admin web interface.
-    adminSecret: ""
+  # Admin secret used to create auth tokens on user login into admin web interface.
+  adminSecret: ""
 
-    # Centrifugo api_key for Centrifugo API endpoint authorization.
-    apiKey: ""
+  # Centrifugo api_key for Centrifugo API endpoint authorization.
+  apiKey: ""
 
-    # Centrifugo grpc_api_key for Centrifugo GRPC API authorization.
-    grpcApiKey: ""
+  # Centrifugo grpc_api_key for Centrifugo GRPC API authorization.
+  grpcApiKey: ""
 
-    # Connection string to Redis.
-    redisUrl: ""
+  # Connection string to Redis.
+  redisUrl: ""
 
-    # Password for Redis.
-    redisPassword: ""
+  # Password for Redis.
+  redisPassword: ""
 
-    # Password for Redis Sentinel.
-    redisSentinelPassword: ""
+  # Password for Redis Sentinel.
+  redisSentinelPassword: ""
 
-    # Connection string to Nats.
-    natsUrl: ""
+  # Connection string to Nats.
+  natsUrl: ""
