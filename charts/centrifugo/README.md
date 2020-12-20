@@ -73,7 +73,7 @@ The following table lists the configurable parameters of the Centrifugo chart an
 |---------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
 | `image.registry`                            | Centrifugo image registry                                                                                               | `docker.io`                                                  |
 | `image.repository`                          | Centrifugo image name                                                                                                   | `centrifugo/centrifugo`                                            |
-| `image.tag`                                 | Centrifugo image tag                                                                                                    | `{TAG_NAME}`                                                 |
+| `image.tag`                                 | Centrifugo image tag                                                                                                    | Taken from chart `appVersion`                                                 |
 | `image.pullPolicy`                          | Centrifugo image pull policy                                                                                            | `IfNotPresent`                                               |
 | `image.pullSecrets`                         | Specify docker-registry secret names as an array                                                                        | `[]` (does not add image pull secrets to deployed pods)      |
 | `service.type`                              | service type                                                                                                            | `ClusterIP`                                                  |
@@ -91,7 +91,7 @@ The following table lists the configurable parameters of the Centrifugo chart an
 | `grpcService.port`                          | GRPC API service port                                                                                                   | `10000`                                                      |
 | `grpcService.nodePort`                      | GRPC API K8s service node port                                                                                          | `nil`                                                        |
 | `env`                                       | Additional environment variables to be passed to Centrifugo container.                                                  | `nil`                                                        |
-| `config`                                    | Centrifugo configuration, will be transformed into config.json file                                                     | `{"admin":true,"broker":"","engine":"memory","namespaces":[],"v3_use_offset":true}`                                                        |
+| `config`                                    | Centrifugo configuration, will be transformed into config.json file                                                     | `{"admin":true,"engine":"memory","namespaces":[],"v3_use_offset":true}`                                                        |
 | `existingSecret`                            | Name of existing secret to use for secret's parameters. The secret has to contain the keys below                        | `nil`                                                         |
 | `secret.tokenHmacSecretKey`                 | Secret key for HMAC tokens.                                                                                             | `nil`                                                         |
 | `secret.adminPassword`                      | Admin password used to protect access to web interface.                                                                 | `nil`                                                         |
@@ -222,10 +222,13 @@ Note: it's possible to set Nats URL over secrets if needed.
 
 ## Upgrading
 
-### To 6.0.0
+### v5 -> v6
+
+v6 aims to simplify chart configuration and make it a bit more idiomatic. See pull request [#6](https://github.com/centrifugal/helm-charts/pull/6) for all the changes.
+
 - Several parameters were renamed or disappeared in favor of new ones on this major version:
-  - Three type of services were move to their own block.
-  - To enable separate service use `useSeparateInternalService` and `useSeparateGrpcService` flags.
-  - `ServiceMonitor` move to block `metrics` with additional parameters, `labels` renamed to `additionalLabels`  - removed configuration block `centrifugo`, all configuration under that block move to top level.
+  - Three type of services were moved to their own block.
+  - To enable separate services use `useSeparateInternalService` and `useSeparateGrpcService` flags.
+  - `ServiceMonitor` move to block `metrics` with additional parameters, `labels` renamed to `additionalLabels`  - removed configuration block `centrifugo`, all configuration under that block moved to top level.
 
 [On November 13, 2020, Helm v2 support was formally finished](https://github.com/helm/charts#status-of-the-project), this major version is the result of the required changes applied to the Helm Chart to be able to incorporate the different features added in Helm v3 and to be consistent with the Helm project itself regarding the Helm v2 EOL.
