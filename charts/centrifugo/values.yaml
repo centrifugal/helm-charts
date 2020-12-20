@@ -169,10 +169,6 @@ config:
   # documentation: https://centrifugal.github.io/centrifugo/server/engines/
   engine: "memory"
 
-  # Broker to use, not used by default. You can enable Nats broker settings
-  # this option to "nats". Refer to https://centrifugal.github.io/centrifugo/server/engines/
-  broker: ""
-
   # Use offset protocol field.
   v3_use_offset: true
 
