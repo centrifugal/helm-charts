@@ -12,30 +12,30 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - port: {{ .Values.service.externalPort }}
+    - port: {{ .Values.service.port }}
       targetPort: external
       protocol: TCP
       name: external
-      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.externalNodePort))) }}
-      nodePort: {{ .Values.service.externalNodePort }}
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
+      nodePort: {{ .Values.service.nodePort }}
       {{- end }}
-    {{- if not .Values.internalService.enabled }}
-    - port: {{ .Values.service.internalPort }}
+{{- if not .Values.service.useSeparateInternalService }}
+    - port: {{ .Values.internalService.port }}
       targetPort: internal
       protocol: TCP
       name: internal
-      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.internalNodePort))) }}
-      nodePort: {{ .Values.service.internalNodePort }}
+      {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
+      nodePort: {{ .Values.internalService.nodePort }}
       {{- end }}
-    {{- end }}
-    {{- if not .Values.grpcService.enabled }}
-    - port: {{ .Values.service.grpcPort }}
+{{- end }}
+{{- if not .Values.service.useSeparateGrpcService }}
+    - port: {{ .Values.grpcService.port }}
       targetPort: grpc
       protocol: TCP
       name: grpc
-      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.grpcNodePort))) }}
-      nodePort: {{ .Values.service.grpcNodePort }}
+      {{- if (and (eq .Values.grpcService.type "NodePort") (not (empty .Values.grpcService.nodePort))) }}
+      nodePort: {{ .Values.grpcService.nodePort }}
       {{- end }}
-    {{- end }}
+{{- end }}
   selector:
     {{- include "centrifugo.selectorLabels" . | nindent 4 }}
