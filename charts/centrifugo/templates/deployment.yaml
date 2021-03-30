@@ -26,6 +26,9 @@ spec:
         {{- end }}
       labels:
         {{- include "centrifugo.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- include "centrifugo.imagePullSecrets" . | indent 6 }}
       serviceAccountName: {{ include "centrifugo.serviceAccountName" . }}

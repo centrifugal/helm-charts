@@ -102,6 +102,7 @@ autoscaling:
 terminationGracePeriodSeconds: 30
 
 podAnnotations: {}
+podLabels: {}
 
 podSecurityContext: {}
   # fsGroup: 2000
