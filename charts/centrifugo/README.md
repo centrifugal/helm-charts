@@ -82,6 +82,7 @@ The following table lists the configurable parameters of the Centrifugo chart an
 | `service.nodePort`                          | K8s service node port                                                                                                   | `nil`                                                        |
 | `service.useSeparateInternalService`        | Use separate service for internal endpoints. It could be useful for configuring same port number for all services.      | `false`                                                      |
 | `service.useSeparateGrpcService`            | Use separate service for GRPC endpoints. It could be useful for configuring same port number for all services.          | `false`                                                      |
+| `service.useSeparateUniGrpcService`            | Use separate service for GRPC uni stream. It could be useful for configuring same port number for all services.          | `false`                                                      |
 | `internalService.type`                      | internal (for API, Prometheus metrics, admin web interface, health checks) port service type                            | `ClusterIP`                                                  |
 | `internalService.clusterIP`                 | internal (for API, Prometheus metrics, admin web interface, health checks) service clusterIP IP                         | `nil`                                                        |
 | `internalService.port`                      | internal (for API, Prometheus metrics, admin web interface, health checks) service port                                 | `9000`                                                       |
@@ -98,7 +99,7 @@ The following table lists the configurable parameters of the Centrifugo chart an
 | `secrets.adminSecret`                        | Admin secret used to create auth tokens on user login into admin web interface.                                         | `nil`                                                         |
 | `secrets.apiKey`                             | Centrifugo api_key for Centrifugo API endpoint authorization.                                                           | `nil`                                                         |
 | `secrets.grpcApiKey`                         | Centrifugo grpc_api_key for Centrifugo GRPC API authorization.                                                          | `nil`                                                         |
-| `secrets.redisUrl`                           | Connection string to Redis.                                                                                             | `nil`                                                         |
+| `secrets.redisAddress`                           | Connection string to Redis.                                                                                             | `nil`                                                         |
 | `secrets.redisPassword`                      | Password for Redis.                                                                                                     | `nil`                                                         |
 | `secrets.natsUrl`                            | Connection string to Nats.                                                                                              | `nil`                                                         |
 
@@ -176,7 +177,7 @@ helm install redis bitnami/redis --set usePassword=false
 Then start Centrifugo with `redis` engine and pointing it to Redis:
 
 ```console
-helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_url=redis://redis-master:6379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_address=redis://redis-master:6379 --set replicaCount=3
 ```
 
 Now example with Redis Sentinel (again using chart from bitnami):
@@ -228,7 +229,7 @@ v6 aims to simplify chart configuration and make it a bit more idiomatic. See pu
 
 - Several parameters were renamed or disappeared in favor of new ones on this major version:
   - Three type of services were moved to their own block.
-  - To enable separate services use `useSeparateInternalService` and `useSeparateGrpcService` flags.
+  - To enable separate services use `useSeparateInternalService` and `useSeparateGrpcService` and `useSeparateUniGrpcService` flags.
   - `ServiceMonitor` move to block `metrics` with additional parameters, `labels` renamed to `additionalLabels`  - removed configuration block `centrifugo`, all configuration under that block moved to top level.
 
 [On November 13, 2020, Helm v2 support was formally finished](https://github.com/helm/charts#status-of-the-project), this major version is the result of the required changes applied to the Helm Chart to be able to incorporate the different features added in Helm v3 and to be consistent with the Helm project itself regarding the Helm v2 EOL.

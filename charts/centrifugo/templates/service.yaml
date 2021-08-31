@@ -37,5 +37,14 @@ spec:
       nodePort: {{ .Values.grpcService.nodePort }}
       {{- end }}
 {{- end }}
+{{- if not .Values.service.useSeparateUniGrpcService }}
+    - port: {{ .Values.uniGrpcService.port }}
+      targetPort: uni_grpc
+      protocol: TCP
+      name: uni_grpc
+      {{- if (and (eq .Values.uniGrpcService.type "NodePort") (not (empty .Values.uniGrpcService.nodePort))) }}
+      nodePort: {{ .Values.uniGrpcService.nodePort }}
+      {{- end }}
+{{- end }}
   selector:
     {{- include "centrifugo.selectorLabels" . | nindent 4 }}

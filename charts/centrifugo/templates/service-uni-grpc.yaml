@@ -1,0 +1,25 @@
+{{- if .Values.service.useSeparateUniGrpcService -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "centrifugo.fullname" . }}-uni-grpc
+  namespace: {{ include "centrifugo.namespace" . }}
+  labels:
+    {{- include "centrifugo.labels" . | nindent 4 }}
+  {{- with .Values.uniGrpcService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.uniGrpcService.type }}
+  ports:
+    - port: {{ .Values.uniGrpcService.port }}
+      targetPort: uni_grpc
+      protocol: TCP
+      name: uni_grpc
+      {{- if (and (eq .Values.uniGrpcService.type "NodePort") (not (empty .Values.uniGrpcService.nodePort))) }}
+      nodePort: {{ .Values.uniGrpcService.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "centrifugo.selectorLabels" . | nindent 4 }}
+{{- end }}
