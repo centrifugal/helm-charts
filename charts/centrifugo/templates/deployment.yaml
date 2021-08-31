@@ -134,7 +134,7 @@ spec:
               containerPort: {{ .Values.internalService.port }}
             - name: grpc
               containerPort: {{ .Values.grpcService.port }}
-            - name: uni_grpc
+            - name: uni-grpc
               containerPort: {{ .Values.uniGrpcService.port }}
           livenessProbe:
             httpGet:

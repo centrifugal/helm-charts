@@ -14,9 +14,9 @@ spec:
   type: {{ .Values.uniGrpcService.type }}
   ports:
     - port: {{ .Values.uniGrpcService.port }}
-      targetPort: uni_grpc
+      targetPort: uni-grpc
       protocol: TCP
-      name: uni_grpc
+      name: uni-grpc
       {{- if (and (eq .Values.uniGrpcService.type "NodePort") (not (empty .Values.uniGrpcService.nodePort))) }}
       nodePort: {{ .Values.uniGrpcService.nodePort }}
       {{- end }}
