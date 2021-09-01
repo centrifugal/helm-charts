@@ -38,8 +38,10 @@ service:
   ##
   ## Use separate service for internal endpoints. It could be useful for configuring same port number for all services.
   useSeparateInternalService: false
-  ## Use separate service for GRPC endpoints. It could be useful for configuring same port number for all services.
+  ## Use separate service for GRPC API endpoints. It could be useful for configuring same port number for all services.
   useSeparateGrpcService: false
+  ## Use separate service for GRPC unidirectional stream. It could be useful for configuring same port number for all services.
+  useSeparateUniGrpcService: false
 
 internalService:
   port: 9000
@@ -58,6 +60,14 @@ grpcService:
   nodePort: ""
   # Static NodePort, if set.
   # nodePort: 30102
+  annotations: {}
+
+uniGrpcService:
+  port: 11000
+  type: ClusterIP
+  nodePort: ""
+  # Static NodePort, if set.
+  # nodePort: 30103
   annotations: {}
 
 ingress:
@@ -170,9 +180,6 @@ config:
   # documentation: https://centrifugal.github.io/centrifugo/server/engines/
   engine: "memory"
 
-  # Use offset protocol field.
-  v3_use_offset: true
-
   # Enable admin web interface by default.
   admin: true
 
@@ -199,7 +206,7 @@ secrets:
   grpcApiKey: ""
 
   # Connection string to Redis.
-  redisUrl: ""
+  redisAddress: ""
 
   # Password for Redis.
   redisPassword: ""

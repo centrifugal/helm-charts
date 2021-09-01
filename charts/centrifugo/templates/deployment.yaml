@@ -57,6 +57,8 @@ spec:
             - --grpc_api
             - --grpc_api_port
             - "{{ .Values.grpcService.port }}"
+            - --uni_grpc_port
+            - "{{ .Values.uniGrpcService.port }}"
           env:
             - name: CENTRIFUGO_ADMIN_PASSWORD
               valueFrom:
@@ -89,12 +91,12 @@ spec:
                   name: {{ include "centrifugo.secretName" . }}
                   key: grpc_api_key
             {{- end }}
-            {{- if .Values.secrets.redisUrl }}
-            - name: CENTRIFUGO_REDIS_URL
+            {{- if .Values.secrets.redisAddress }}
+            - name: CENTRIFUGO_REDIS_ADDRESS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: redis_url
+                  key: redis_address
             {{- end }}
             {{- if .Values.secrets.redisPassword }}
             - name: CENTRIFUGO_REDIS_PASSWORD
@@ -132,6 +134,8 @@ spec:
               containerPort: {{ .Values.internalService.port }}
             - name: grpc
               containerPort: {{ .Values.grpcService.port }}
+            - name: uni-grpc
+              containerPort: {{ .Values.uniGrpcService.port }}
           livenessProbe:
             httpGet:
               path: /health
