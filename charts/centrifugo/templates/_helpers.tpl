@@ -119,5 +119,3 @@ imagePullSecrets:
     {{- printf "%s" (include "centrifugo.fullname" .) -}}
 {{- end -}}
 {{- end -}}
-
-
