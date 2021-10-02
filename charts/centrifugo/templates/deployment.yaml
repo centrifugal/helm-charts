@@ -81,6 +81,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: api_key
+                  optional: true
             - name: CENTRIFUGO_GRPC_API_KEY
               valueFrom:
                 secretKeyRef:
