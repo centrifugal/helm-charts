@@ -70,55 +70,48 @@ spec:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: admin_secret
-            {{- if .Values.secrets.tokenHmacSecretKey }}
             - name: CENTRIFUGO_TOKEN_HMAC_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: token_hmac_secret_key
-            {{- end }}
-            {{- if .Values.secrets.apiKey }}
+                  optional: true
             - name: CENTRIFUGO_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: api_key
-            {{- end }}
-            {{- if .Values.secrets.grpcApiKey }}
+                  optional: true
             - name: CENTRIFUGO_GRPC_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: grpc_api_key
-            {{- end }}
-            {{- if .Values.secrets.redisAddress }}
+                  optional: true
             - name: CENTRIFUGO_REDIS_ADDRESS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: redis_address
-            {{- end }}
-            {{- if .Values.secrets.redisPassword }}
+                  optional: true
             - name: CENTRIFUGO_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: redis_password
-            {{- end }}
-            {{- if .Values.secrets.redisSentinelPassword }}
+                  optional: true
             - name: CENTRIFUGO_REDIS_SENTINEL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: redis_sentinel_password
-            {{- end }}
-            {{- if .Values.secrets.natsUrl }}
+                  optional: true
             - name: CENTRIFUGO_NATS_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: nats_url
-            {{- end }}
+                  optional: true
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
