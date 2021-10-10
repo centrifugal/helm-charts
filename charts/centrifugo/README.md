@@ -101,8 +101,9 @@ The following table lists the configurable parameters of the Centrifugo chart an
 | `secrets.grpcApiKey`                         | Centrifugo grpc_api_key for Centrifugo GRPC API authorization.                                                          | `nil`                                                         |
 | `secrets.redisAddress`                           | Connection string to Redis.                                                                                             | `nil`                                                         |
 | `secrets.redisPassword`                      | Password for Redis.                                                                                                     | `nil`                                                         |
+| `secrets.redisSentinelPassword`                      | Password for Redis Sentinel.                                                                                                     | `nil`                                                         |
 | `secrets.natsUrl`                            | Connection string to Nats.                                                                                              | `nil`                                                         |
-
+| `secrets.license`                            | Centrifugo PRO license                                                                                              | `nil`                                                         |
 
 ### Metrics parameters
 
