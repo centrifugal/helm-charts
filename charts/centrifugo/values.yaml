@@ -217,5 +217,5 @@ secrets:
   # Connection string to Nats.
   natsUrl: ""
 
-  # Centrifugo PRO license 
+  # Centrifugo PRO license.
   license: ""
