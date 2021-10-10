@@ -112,6 +112,12 @@ spec:
                   name: {{ include "centrifugo.secretName" . }}
                   key: nats_url
                   optional: true
+            - name: CENTRIFUGO_LICENSE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.secretName" . }}
+                  key: license
+                  optional: true
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
