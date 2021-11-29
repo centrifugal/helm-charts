@@ -15,6 +15,9 @@ spec:
     - port: {{ .Values.service.port }}
       targetPort: external
       protocol: TCP
+      {{- if .Values.service.appProtocol }}
+      appProtocol: {{ .Values.service.appProtocol }}
+      {{- end }}
       name: external
       {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
       nodePort: {{ .Values.service.nodePort }}
@@ -23,6 +26,9 @@ spec:
     - port: {{ .Values.internalService.port }}
       targetPort: internal
       protocol: TCP
+      {{- if .Values.internalService.appProtocol }}
+      appProtocol: {{ .Values.internalService.appProtocol }}
+      {{- end }}
       name: internal
       {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
       nodePort: {{ .Values.internalService.nodePort }}
@@ -32,6 +38,9 @@ spec:
     - port: {{ .Values.grpcService.port }}
       targetPort: grpc
       protocol: TCP
+      {{- if .Values.grpcService.appProtocol }}
+      appProtocol: {{ .Values.grpcService.appProtocol }}
+      {{- end }}
       name: grpc
       {{- if (and (eq .Values.grpcService.type "NodePort") (not (empty .Values.grpcService.nodePort))) }}
       nodePort: {{ .Values.grpcService.nodePort }}
@@ -41,6 +50,9 @@ spec:
     - port: {{ .Values.uniGrpcService.port }}
       targetPort: uni-grpc
       protocol: TCP
+      {{- if .Values.uniGrpcService.appProtocol }}
+      appProtocol: {{ .Values.uniGrpcService.appProtocol }}
+      {{- end }}
       name: uni-grpc
       {{- if (and (eq .Values.uniGrpcService.type "NodePort") (not (empty .Values.uniGrpcService.nodePort))) }}
       nodePort: {{ .Values.uniGrpcService.nodePort }}

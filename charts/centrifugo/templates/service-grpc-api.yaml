@@ -16,6 +16,9 @@ spec:
     - port: {{ .Values.grpcService.port }}
       targetPort: grpc
       protocol: TCP
+      {{- if .Values.grpcService.appProtocol }}
+      appProtocol: {{ .Values.grpcService.appProtocol }}
+      {{- end }}
       name: grpc
       {{- if (and (eq .Values.grpcService.type "NodePort") (not (empty .Values.grpcService.nodePort))) }}
       nodePort: {{ .Values.grpcService.nodePort }}

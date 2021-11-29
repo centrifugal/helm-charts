@@ -16,6 +16,9 @@ spec:
     - port: {{ .Values.internalService.port }}
       targetPort: internal
       protocol: TCP
+      {{- if .Values.internalService.appProtocol }}
+      appProtocol: {{ .Values.internalService.appProtocol }}
+      {{- end }}
       name: internal
       {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
       nodePort: {{ .Values.internalService.nodePort }}
