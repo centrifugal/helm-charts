@@ -2,6 +2,21 @@ apiVersion: v1
 entries:
   centrifugo:
   - apiVersion: v1
+    appVersion: 3.1.1
+    created: "2021-12-08T15:40:32.082810654Z"
+    description: Centrifugo is a scalable real-time messaging server in language-agnostic
+      way
+    digest: 7ee01f22c4ef55cb16cbff9a56486a87c9577bb30a4786b7158409418b3812a7
+    home: https://centrifugal.dev
+    icon: https://centrifugal.dev/img/favicon.png
+    maintainers:
+    - email: frvzmb@gmail.com
+      name: FZambia
+    name: centrifugo
+    urls:
+    - https://github.com/centrifugal/helm-charts/releases/download/centrifugo-7.2.2/centrifugo-7.2.2.tgz
+    version: 7.2.2
+  - apiVersion: v1
     appVersion: 3.1.0
     created: "2021-11-29T10:20:08.1430369Z"
     description: Centrifugo is a scalable real-time messaging server in language-agnostic
