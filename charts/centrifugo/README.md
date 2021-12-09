@@ -120,8 +120,6 @@ The following table lists the configurable parameters of the Centrifugo chart an
 | `metrics.serviceMonitor.relabellings`       | Specify Metric Relabellings to add to the scrape endpoint                                                            | `nil`                                                        |
 | `metrics.serviceMonitor.honorLabels`        | honorLabels chooses the metric's labels on collisions with target labels.                                            | `false`                                                      |
 | `metrics.serviceMonitor.additionalLabels`   | Used to pass Labels that are required by the Installed Prometheus Operator                                           | `{}`                                                         |
-| `metrics.serviceMonitor.release`            | Used to pass Labels release that sometimes should be custom for Prometheus Operator                                  | `nil`                                                        |
-
 
 _See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documentation._
 

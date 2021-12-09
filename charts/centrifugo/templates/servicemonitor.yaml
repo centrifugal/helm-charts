@@ -5,12 +5,20 @@ metadata:
   name: {{ template "centrifugo.fullname" . }}
   {{- if .Values.metrics.serviceMonitor.namespace }}
   namespace: {{ .Values.metrics.serviceMonitor.namespace }}
+  {{- else }}
+  namespace: {{ include "centrifugo.namespace" . }}
   {{- end }}
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
     {{- range $key, $value := .Values.metrics.serviceMonitor.additionalLabels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
+  {{- if .Values.metrics.serviceMonitor.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.metrics.serviceMonitor.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
 spec:
   endpoints:
     - port: internal
