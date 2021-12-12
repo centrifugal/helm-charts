@@ -2,10 +2,10 @@
 {{- $fullName := include "centrifugo.fullname" . -}}
 {{- $namespace := include "centrifugo.namespace" . -}}
 {{- $svcPort := .Values.service.port -}}
-{{- if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+{{- if or ( gt .Capabilities.KubeVersion.Major "1" ) ( ge .Capabilities.KubeVersion.Minor "19" ) }}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion }}
 apiVersion: networking.k8s.io/v1beta1
-{{- else -}}
-apiVersion: extensions/v1beta1
 {{- end }}
 kind: Ingress
 metadata:
@@ -18,6 +18,11 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
+  {{- if or ( gt .Capabilities.KubeVersion.Major "1" ) ( ge .Capabilities.KubeVersion.Minor "18" ) }}
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
     {{- range .Values.ingress.tls }}
@@ -35,9 +40,19 @@ spec:
         paths:
           {{- range .paths }}
           - path: {{ . }}
+            {{- if or ( gt $.Capabilities.KubeVersion.Major "1" ) ( ge $.Capabilities.KubeVersion.Minor "19" ) }}
+            pathType: {{ $.Values.ingress.pathType }}
+            {{- end }}
             backend:
+              {{- if or ( gt $.Capabilities.KubeVersion.Major "1" ) ( ge $.Capabilities.KubeVersion.Minor "19" ) }}
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+              {{- else }}
               serviceName: {{ $fullName }}
               servicePort: {{ $svcPort }}
+              {{- end }}
           {{- end }}
     {{- end }}
-  {{- end }}
+{{- end }}
