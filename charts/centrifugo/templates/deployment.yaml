@@ -64,53 +64,53 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: admin_password
+                  key: adminPassword
             - name: CENTRIFUGO_ADMIN_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: admin_secret
+                  key: adminSecret
             - name: CENTRIFUGO_TOKEN_HMAC_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: token_hmac_secret_key
+                  key: tokenHmacSecretKey
                   optional: true
             - name: CENTRIFUGO_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: api_key
+                  key: apiKey
                   optional: true
             - name: CENTRIFUGO_GRPC_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: grpc_api_key
+                  key: grpcApiKey
                   optional: true
             - name: CENTRIFUGO_REDIS_ADDRESS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: redis_address
+                  key: redisAddress
                   optional: true
             - name: CENTRIFUGO_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: redis_password
+                  key: redisPassword
                   optional: true
             - name: CENTRIFUGO_REDIS_SENTINEL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: redis_sentinel_password
+                  key: redisSentinelPassword
                   optional: true
             - name: CENTRIFUGO_NATS_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
-                  key: nats_url
+                  key: natsUrl
                   optional: true
             - name: CENTRIFUGO_LICENSE
               valueFrom:
