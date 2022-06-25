@@ -225,6 +225,22 @@ Note: it's possible to set Nats URL over secrets if needed.
 
 ## Upgrading
 
+### v7 -> v8
+
+In v8 version we are fixing an inconsistency in `existingSecret` option names reported in [#33](https://github.com/centrifugal/helm-charts/issues/33).
+
+So, in `existingSecret`:
+
+* admin_password -> adminPassword
+* admin_secret -> adminSecret
+* token_hmac_secret_key -> tokenHmacSecretKey
+* api_key -> apiKey
+* grpc_api_key -> grpcApiKey
+* redis_address -> redisAddress
+* redis_password -> redisPassword
+* redis_sentinel_password -> redisSentinelPassword
+* nats_url -> natsUrl
+
 ### v5 -> v6
 
 v6 aims to simplify chart configuration and make it a bit more idiomatic. See pull request [#6](https://github.com/centrifugal/helm-charts/pull/6) for all the changes.
