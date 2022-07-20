@@ -225,6 +225,10 @@ Note: it's possible to set Nats URL over secrets if needed.
 
 ## Upgrading
 
+### v8 -> v9
+
+In v9 we are using Centrifugo v4 as base appVersion. See [Centrifugo v4.0.0 release notes](https://github.com/centrifugal/centrifugo/releases/tag/v4.0.0).
+
 ### v7 -> v8
 
 In v8 version we are fixing an inconsistency in `existingSecret` option names reported in [#33](https://github.com/centrifugal/helm-charts/issues/33).
