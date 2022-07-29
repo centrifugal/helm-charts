@@ -144,7 +144,7 @@ config:
   admin: false
   namespaces:
       - name: "chat"
-        publish: true
+      - presence: true
 ```
 
 And deploy with:
@@ -156,7 +156,7 @@ helm install [RELEASE_NAME] -f values.yaml centrifugal/centrifugo
 Or you can override options using `--set` flag, for example:
 
 ```console
-helm install [RELEASE_NAME] centrifugal/centrifugo --set config.namespaces[0].name=chat --set config.namespaces[0].publish=true
+helm install [RELEASE_NAME] centrifugal/centrifugo --set config.namespaces[0].name=chat --set config.namespaces[0].presence=true
 ```
 
 This chart also defines several secrets. For example here is an example that configures HTTP API key and token HMAC secret key.
@@ -173,7 +173,7 @@ Run Redis (here we are using Redis chart from bitnami, but you can use any other
 
 ```console
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install redis bitnami/redis --set usePassword=false
+helm install redis bitnami/redis --set auth.enabled=false
 ```
 
 Then start Centrifugo with `redis` engine and pointing it to Redis:
@@ -185,13 +185,13 @@ helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --
 Now example with Redis Sentinel (again using chart from bitnami):
 
 ```console
-helm install redis bitnami/redis --set usePassword=false --set cluster.enabled=true --set sentinel.enabled=true
+helm install redis bitnami/redis --set auth.enabled=false --set cluster.enabled=true --set sentinel.enabled=true
 ```
 
 Then point Centrifugo to Sentinel:
 
 ```console
-helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_master_name=mymaster --set config.redis_sentinels=redis:26379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_sentinel_master_name=mymaster --set config.redis_sentinel_address=redis:26379 --set replicaCount=3
 ```
 
 Example with Redis Cluster (using `bitnami/redis-cluster` chart, but again the way you run Redis is up to you actually):
@@ -203,7 +203,7 @@ helm install redis bitnami/redis-cluster --set usePassword=false
 Then point Centrifugo to Redis Cluster:
 
 ```console
-helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_cluster_addrs=redis-redis-cluster-0:6379 --set replicaCount=3
+helm install centrifugo -f values.yaml ./centrifugo --set config.engine=redis --set config.redis_cluster_address=redis-redis-cluster-0:6379 --set replicaCount=3
 ```
 
 Note: it's possible to set Redis URL and Redis/Sentinel passwords over secrets if needed.
