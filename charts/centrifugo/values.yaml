@@ -107,6 +107,34 @@ ingress:
     #   hosts:
     #     - centrifugo.local
 
+ingressInternal:
+  enabled: false
+
+  # Optionally set the ingressClassName. k8s >= 1.18
+  ingressClassName: ""
+
+  # pathType override - see: https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
+  pathType: Prefix
+
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+    #
+    # To run on custom path:
+    # nginx.ingress.kubernetes.io/rewrite-target: /$2
+  hosts: []
+    # - host: centrifugo.local
+    #   paths:
+    #     - /
+    # - host: centrifugo-with-prefix.local
+    #   paths:
+    #     - /test(/|$)(.*)
+  # https://kubernetes.github.io/ingress-nginx/examples/tls-termination/
+  tls: []
+    # - secretName: centrifugo-example-tls
+    #   hosts:
+    #     - centrifugo.local
+
 resources: {}
 
 serviceAccount:
