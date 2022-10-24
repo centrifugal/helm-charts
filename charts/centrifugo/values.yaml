@@ -109,8 +109,13 @@ ingress:
 
 ingressInternal:
   # !!! ATTENTION !!!
-  # Never expose internal services by ingressInternal without limiting access to the ingress
-  # It is also a good idea to limit access to specific path
+  # Be careful in exposing internal services by ingressInternal. Make sure
+  # you understand which Centrifugo endpoints are exposed in this case (server API,
+  # admin, Prometheus metrics, healthcheck, etc.). If you really need exposing internal
+  # endpoints consider limiting access to the ingress from the outside by load balancer
+  # rules, probably per specific path. Probably `admin_external` or `api_external`
+  # options which expose corresponding handlers on the external ingress will work better
+  # for you.
   enabled: false
 
   # Optionally set the ingressClassName. k8s >= 1.18
