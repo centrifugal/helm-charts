@@ -1,0 +1,64 @@
+{{- if .Values.ingressInternal.enabled }}
+{{- $fullName := include "centrifugo.fullname" . }}
+{{- $namespace := include "centrifugo.namespace" . }}
+{{- $svcPort := .Values.internalService.port }}
+{{- if or ( gt .Capabilities.KubeVersion.Major "1" ) ( ge .Capabilities.KubeVersion.Minor "19" ) }}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion }}
+apiVersion: networking.k8s.io/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-internal
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "centrifugo.labels" . | nindent 4 }}
+  {{- with .Values.ingressInternal.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingressInternal.ingressClassName }}
+  ingressClassName: {{ .Values.ingressInternal.ingressClassName }}
+  {{- end }}
+  {{- if .Values.ingressInternal.tls }}
+  tls:
+    {{- range .Values.ingressInternal.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingressInternal.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ . }}
+            {{- if or ( gt $.Capabilities.KubeVersion.Major "1" ) ( ge $.Capabilities.KubeVersion.Minor "19" ) }}
+            pathType: {{ $.Values.ingressInternal.pathType }}
+            {{- end }}
+            backend:
+              {{- if or ( gt $.Capabilities.KubeVersion.Major "1" ) ( ge $.Capabilities.KubeVersion.Minor "19" ) }}
+              service:
+                {{- if $.Values.service.useSeparateInternalService }}
+                name: {{ $fullName }}-internal
+                {{- else }}
+                name: {{ $fullName }}
+                {{- end }}
+                port:
+                  number: {{ $svcPort }}
+              {{- else }}
+              {{- if $.Values.service.useSeparateInternalService }}
+              serviceName: {{ $fullName }}-internal
+              {{- else }}
+              serviceName: {{ $fullName }}
+              {{- end }}
+              servicePort: {{ $svcPort }}
+              {{- end }}
+          {{- end }}
+    {{- end }}
+{{- end }}
