@@ -108,6 +108,9 @@ ingress:
     #     - centrifugo.local
 
 ingressInternal:
+  # !!! ATTENTION !!!
+  # Never expose internal services by ingressInternal without limiting access to the ingress
+  # It is also a good idea to limit access to specific path
   enabled: false
 
   # Optionally set the ingressClassName. k8s >= 1.18
