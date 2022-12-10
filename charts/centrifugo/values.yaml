@@ -161,6 +161,10 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
 terminationGracePeriodSeconds: 30
 
 podAnnotations: {}
