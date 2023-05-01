@@ -20,6 +20,7 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 namespaceOverride: ""
+priorityClassName: ""
 
 service:
   ## Service type
