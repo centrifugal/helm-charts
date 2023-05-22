@@ -241,6 +241,11 @@ config:
   # Array of namespaces.
   namespaces: []
 
+
+# Init Containers, e.g. for waiting for other resources like redis  (evaluated as template)
+# see https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+initContainers: ""
+
 # existingSecret: my-secret
 
 # Centrifugo secrets.

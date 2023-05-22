@@ -97,6 +97,7 @@ The following table lists the configurable parameters of the Centrifugo chart an
 | `env`                                       | Additional environment variables to be passed to Centrifugo container.                                                  | `nil`                                                        |
 | `config`                                    | Centrifugo configuration, will be transformed into config.json file                                                     | `{"admin":true,"engine":"memory","namespaces":[],"v3_use_offset":true}`                                                        |
 | `existingSecret`                            | Name of existing secret to use for secret's parameters. The secret has to contain the keys below                        | `nil`                                                         |
+| `initContainers`                             | Set initContainers, e.g. wait for other resources                                                                      | `nil`                                                         |
 | `secrets.tokenHmacSecretKey`                 | Secret key for HMAC tokens.                                                                                             | `nil`                                                         |
 | `secrets.adminPassword`                      | Admin password used to protect access to web interface.                                                                 | `nil`                                                         |
 | `secrets.adminSecret`                        | Admin secret used to create auth tokens on user login into admin web interface.                                         | `nil`                                                         |
@@ -222,6 +223,44 @@ helm install centrifugo -f values.yaml ./centrifugo --set config.broker=nats --s
 ```
 
 Note: it's possible to set Nats URL over secrets if needed.
+
+## Using initContainers
+
+You can define `initContainers` in your values.yaml to wait for other resources or to do some init jobs. `initContainers` might be useful to wait for your engine to be ready before starting centrifugo.
+
+### Redis
+
+```yaml
+initContainers:
+  - name: wait-for-redis
+    image: ghcr.io/patrickdappollonio/wait-for:latest
+    env:
+    - name: REDIS_ADDRESS
+      value: "redis:6379"
+    command:
+      - /wait-for
+    args:
+      - --host="$(REDIS_ADDRESS)"
+      - --timeout=240s
+      - --verbose
+```
+
+### Example Nats
+
+```yaml
+initContainers:
+  - name: wait-for-nats
+    image: ghcr.io/patrickdappollonio/wait-for:latest
+    env:
+    - name: NATS_ADDRESS
+      value: "nats:4222"
+    command:
+      - /wait-for
+    args:
+      - --host="$(NATS_ADDRESS)"
+      - --timeout=240s
+      - --verbose
+```
 
 ## Upgrading
 
