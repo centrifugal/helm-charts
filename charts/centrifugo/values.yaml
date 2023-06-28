@@ -228,6 +228,9 @@ affinity: {}
 # Additional environment variables to be passed to Centrifugo container.
 env: {}
 
+# Additional secret environment variables to be passed to Centrifugo container.
+envSecret: []
+
 # Centrifugo configuration, will be transformed into config.json file.
 config:
   # Engine to use. Default memory engine allows running only one Centrifugo pod.
