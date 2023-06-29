@@ -265,6 +265,10 @@ initContainers:
 
 ## Upgrading
 
+### v9 -> v10
+
+In v10 we are using Centrifugo v5 as base appVersion. See [Centrifugo v5.0.0 release notes](https://github.com/centrifugal/centrifugo/releases/tag/v5.0.0).
+
 ### v8 -> v9
 
 In v9 we are using Centrifugo v4 as base appVersion. See [Centrifugo v4.0.0 release notes](https://github.com/centrifugal/centrifugo/releases/tag/v4.0.0).
