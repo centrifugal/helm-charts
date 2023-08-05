@@ -169,7 +169,7 @@ autoscalingTemplate: []
   # - type: Pods
   #   pods:
   #     metric:
-  #       name: centrifugo_requests_avg
+  #       name: entrifugo_node_num_clients
   #     target:
   #       type: AverageValue
   #       averageValue: 10000m
