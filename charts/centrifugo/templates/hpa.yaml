@@ -21,29 +21,29 @@ spec:
   {{- with .Values.autoscalingTemplate }}
   {{- toYaml . | nindent 2 }}
   {{- end }}
-  {{- with .Values.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
   - type: Resource
     resource:
       name: cpu
-     {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
+      {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
       target:
         type: Utilization
-        averageUtilization: {{ . }}
+        averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
       {{- else }}
       targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
       {{- end }}
 
   {{- end }}
-  {{- with .Values.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
   - type: Resource
     resource:
       name: memory
       {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
       target:
         type: Utilization
-        averageUtilization: {{ . }}
+        averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
       {{- else }}
-      targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+      targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
       {{- end }}
   {{- end }}
   {{- with .Values.autoscaling.behavior }}
