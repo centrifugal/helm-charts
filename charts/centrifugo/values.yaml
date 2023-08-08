@@ -161,6 +161,18 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
+  behavior: {}
+
+autoscalingTemplate: []
+  # Custom or additional autoscaling metrics
+  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-custom-metrics
+  # - type: Pods
+  #   pods:
+  #     metric:
+  #       name: centrifugo_node_num_clients
+  #     target:
+  #       type: AverageValue
+  #       averageValue: 10k
 
 podDisruptionBudget:
   enabled: false

@@ -18,28 +18,35 @@ spec:
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
+  {{- with .Values.autoscalingTemplate }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
   {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: cpu
-        {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
-        target:
-          type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
-        {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
-        {{- end }}
+  - type: Resource
+    resource:
+      name: cpu
+      {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+      {{- else }}
+      targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+      {{- end }}
   {{- end }}
   {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
-    - type: Resource
-      resource:
-        name: memory
-        {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
-        target:
-          type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
-        {{- else }}
-        targetAverageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
-        {{- end }}
+  - type: Resource
+    resource:
+      name: memory
+      {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+      {{- else }}
+      targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+      {{- end }}
+  {{- end }}
+  {{- with .Values.autoscaling.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}
