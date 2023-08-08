@@ -32,7 +32,6 @@ spec:
       {{- else }}
       targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
       {{- end }}
-
   {{- end }}
   {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
   - type: Resource
