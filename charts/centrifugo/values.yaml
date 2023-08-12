@@ -159,20 +159,27 @@ autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  cpu:
+    enabled: false
+    targetCPUUtilizationPercentage: 80
+  memory:
+    enabled: false
+    targetMemoryUtilizationPercentage: 80
+  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#default-behavior
   behavior: {}
 
 autoscalingTemplate: []
   # Custom or additional autoscaling metrics
-  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-custom-metrics
+  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-metrics-apis
+  # ref: https://github.com/kubernetes-sigs/prometheus-adapter/
   # - type: Pods
   #   pods:
   #     metric:
-  #       name: centrifugo_node_num_clients
+  #       # kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/hpa_custom_metric_centrifugo_node_num_clients" | jq .
+  #       name: hpa_custom_metric_centrifugo_node_num_clients
   #     target:
   #       type: AverageValue
-  #       averageValue: 10k
+  #       averageValue: 10000m # NOTE: # 10000m = 10 actual metric value (10 clients)
 
 podDisruptionBudget:
   enabled: false
