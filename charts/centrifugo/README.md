@@ -265,6 +265,10 @@ initContainers:
 
 ## Upgrading
 
+### v10 -> v11
+
+Major bump to 11.0.0 caused by breaking change in horizontal pod autoscaling configuration. See changes in https://github.com/centrifugal/helm-charts/pull/64 for more details. TLDR: cpu scaling should be explicitly enabled now, cpu and memory configuration moved to nested object, both now have `enabled` flags for granular configuraion.
+
 ### v9 -> v10
 
 In v10 we are using Centrifugo v5 as base appVersion. See [Centrifugo v5.0.0 release notes](https://github.com/centrifugal/centrifugo/releases/tag/v5.0.0).
