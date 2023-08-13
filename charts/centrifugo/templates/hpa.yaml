@@ -21,7 +21,7 @@ spec:
   {{- with .Values.autoscalingTemplate }}
   {{- toYaml . | nindent 2 }}
   {{- end }}
-  {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+  {{- if .Values.autoscaling.cpu.enabled }}
   - type: Resource
     resource:
       name: cpu
@@ -33,7 +33,7 @@ spec:
       targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
       {{- end }}
   {{- end }}
-  {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- if .Values.autoscaling.memory.enabled }}
   - type: Resource
     resource:
       name: memory
