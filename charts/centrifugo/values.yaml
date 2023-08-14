@@ -264,6 +264,10 @@ config:
   namespaces: []
 
 
+# TopologySpreadConstrains, e.g. for spreading pods across nodes
+# see https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+topologySpreadConstraints: ""
+
 # Init Containers, e.g. for waiting for other resources like redis  (evaluated as template)
 # see https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
 initContainers: ""
