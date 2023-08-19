@@ -28,9 +28,9 @@ spec:
       {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
       target:
         type: Utilization
-        averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+        averageUtilization: {{ .Values.autoscaling.cpu.targetCPUUtilizationPercentage }}
       {{- else }}
-      targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+      targetAverageUtilization: {{ .Values.autoscaling.cpu.targetCPUUtilizationPercentage }}
       {{- end }}
   {{- end }}
   {{- if .Values.autoscaling.memory.enabled }}
@@ -40,9 +40,9 @@ spec:
       {{- if .Capabilities.APIVersions.Has "autoscaling/v2" }}
       target:
         type: Utilization
-        averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+        averageUtilization: {{ .Values.autoscaling.memory.targetMemoryUtilizationPercentage }}
       {{- else }}
-      targetAverageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+      targetAverageUtilization: {{ .Values.autoscaling.memory.targetMemoryUtilizationPercentage }}
       {{- end }}
   {{- end }}
   {{- with .Values.autoscaling.behavior }}
