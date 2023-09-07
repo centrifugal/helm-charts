@@ -36,6 +36,9 @@ service:
   ## Provide any additional annotations which may be required
   ##
   annotations: {}
+  ## Provide any additional labels which may be required
+  ##
+  labels: {}
   ##
   ## Specify custom appProtocol for a service port.
   appProtocol: ""
@@ -58,6 +61,7 @@ internalService:
     # prometheus.io/path: "/metrics"
     # prometheus.io/port: "9000"
   ## Specify custom appProtocol for a service port.
+  labels: {}
   appProtocol: ""
 
 grpcService:
@@ -68,6 +72,7 @@ grpcService:
   # nodePort: 30102
   annotations: {}
   ## Specify custom appProtocol for a service port.
+  labels: {}
   appProtocol: ""
 
 uniGrpcService:
@@ -78,6 +83,7 @@ uniGrpcService:
   # nodePort: 30103
   annotations: {}
   ## Specify custom appProtocol for a service port.
+  labels: {}
   appProtocol: ""
 
 ingress:
