@@ -6,6 +6,9 @@ metadata:
   namespace: {{ include "centrifugo.namespace" . }}
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
+    {{- with .Values.internalService.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.internalService.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

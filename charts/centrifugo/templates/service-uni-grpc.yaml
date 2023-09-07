@@ -6,6 +6,9 @@ metadata:
   namespace: {{ include "centrifugo.namespace" . }}
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
+    {{- with .Values.uniGrpcService.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.uniGrpcService.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
