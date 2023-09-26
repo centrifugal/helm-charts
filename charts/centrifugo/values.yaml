@@ -269,6 +269,18 @@ config:
   # Array of namespaces.
   namespaces: []
 
+# Additional volumes for Centrifugo deployment.
+volumes: []
+  # - name: volume
+  #   secret:
+  #     secretName: volumeSecretName
+
+# Additional volume mounts for Centrifugo container.
+volumeMounts: []
+  # - name: volume
+  #   mountPath: "/volume"
+  #   readOnly: true
+
 
 # TopologySpreadConstrains, e.g. for spreading pods across nodes
 # see https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
