@@ -48,7 +48,10 @@ spec:
       volumes:
         - name: {{ include "centrifugo.fullname" . }}-config
           configMap:
-            name: {{ include "centrifugo.fullname" . }}-config  
+            name: {{ include "centrifugo.fullname" . }}-config
+        {{- with .Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- if .Values.initContainers}}
       initContainers:
         {{- with .Values.initContainers }}
@@ -148,6 +151,9 @@ spec:
             - name: "{{ include "centrifugo.fullname" . }}-config"
               mountPath: "/centrifugo"
               readOnly: true
+            {{- with .Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - name: external
               containerPort: {{ .Values.service.port }}
