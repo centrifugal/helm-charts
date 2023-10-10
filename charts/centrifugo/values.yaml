@@ -94,7 +94,8 @@ ingress:
 
   # pathType override - see: https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
   pathType: Prefix
-
+  labels: {}
+    # extrenal-dns: true
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
@@ -130,7 +131,8 @@ ingressInternal:
 
   # pathType override - see: https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
   pathType: Prefix
-
+  labels: {}
+    # extrenal-dns: true
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
