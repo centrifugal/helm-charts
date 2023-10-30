@@ -252,6 +252,10 @@ tolerations: []
 
 affinity: {}
 
+## ref: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config
+dnsPolicy: ""
+dnsConfig: {}
+
 # Additional environment variables to be passed to Centrifugo container.
 env: {}
 
