@@ -53,6 +53,7 @@ service:
 internalService:
   port: 9000
   type: ClusterIP
+  probeScheme: HTTP
   nodePort: ""
   # Static NodePort, if set.
   # nodePort: 30101
