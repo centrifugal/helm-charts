@@ -6,6 +6,12 @@ metadata:
   namespace: {{ include "centrifugo.namespace" . }}
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
+  {{- if .Values.annotations }}
+  annotations:
+    {{- with .Values.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
