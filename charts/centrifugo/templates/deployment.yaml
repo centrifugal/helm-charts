@@ -145,7 +145,7 @@ spec:
             - name: {{ .name }}
               valueFrom:
                 secretKeyRef: 
-                  {{- toYaml .secretKeyRef | nindent 18 }}
+                  {{- tpl (toYaml .secretKeyRef) $ | nindent 18 }}
             {{- end }}
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
