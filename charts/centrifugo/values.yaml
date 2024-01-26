@@ -21,6 +21,8 @@ nameOverride: ""
 fullnameOverride: ""
 namespaceOverride: ""
 priorityClassName: ""
+# Annotations to be added to the deployment
+annotations: {}
 
 service:
   ## Service type
