@@ -117,6 +117,12 @@ spec:
                   name: {{ include "centrifugo.secretName" . }}
                   key: redisAddress
                   optional: true
+            - name: CENTRIFUGO_REDIS_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "centrifugo.secretName" . }}
+                  key: redisUser
+                  optional: true
             - name: CENTRIFUGO_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
