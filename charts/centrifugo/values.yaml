@@ -24,6 +24,9 @@ priorityClassName: ""
 # Annotations to be added to the deployment
 annotations: {}
 
+extraArgs: []
+  # - --config /centrifugo/myconfig.json
+
 service:
   ## Service type
   ##
