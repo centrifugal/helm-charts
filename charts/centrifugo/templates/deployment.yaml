@@ -82,6 +82,9 @@ spec:
             - "{{ .Values.grpcService.port }}"
             - --uni_grpc_port
             - "{{ .Values.uniGrpcService.port }}"
+            {{- range .Values.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
           env:
             - name: CENTRIFUGO_ADMIN_PASSWORD
               valueFrom:
@@ -150,7 +153,7 @@ spec:
             {{- range .Values.envSecret }}
             - name: {{ .name }}
               valueFrom:
-                secretKeyRef: 
+                secretKeyRef:
                   {{- tpl (toYaml .secretKeyRef) $ | nindent 18 }}
             {{- end }}
             {{- range $key, $value := .Values.env }}
