@@ -71,16 +71,16 @@ spec:
           command:
             - centrifugo
           args:
-            - --health
-            - --prometheus
-            - --port
+            - --health.enabled
+            - --prometheus.enabled
+            - --http_server.port
             - "{{ .Values.service.port }}"
-            - --internal_port
+            - --http_server.internal_port
             - "{{ .Values.internalService.port }}"
-            - --grpc_api
-            - --grpc_api_port
+            - --grpc_api.enabled
+            - --grpc_api.port
             - "{{ .Values.grpcService.port }}"
-            - --uni_grpc_port
+            - --uni_grpc.port
             - "{{ .Values.uniGrpcService.port }}"
           env:
             - name: CENTRIFUGO_ADMIN_PASSWORD
@@ -93,13 +93,13 @@ spec:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: adminSecret
-            - name: CENTRIFUGO_TOKEN_HMAC_SECRET_KEY
+            - name: CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: tokenHmacSecretKey
                   optional: true
-            - name: CENTRIFUGO_API_KEY
+            - name: CENTRIFUGO_HTTP_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
@@ -111,31 +111,31 @@ spec:
                   name: {{ include "centrifugo.secretName" . }}
                   key: grpcApiKey
                   optional: true
-            - name: CENTRIFUGO_REDIS_ADDRESS
+            - name: CENTRIFUGO_ENGINE_REDIS_ADDRESS
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: redisAddress
                   optional: true
-            - name: CENTRIFUGO_REDIS_USER
+            - name: CENTRIFUGO_ENGINE_REDIS_USER
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: redisUser
                   optional: true
-            - name: CENTRIFUGO_REDIS_PASSWORD
+            - name: CENTRIFUGO_ENGINE_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: redisPassword
                   optional: true
-            - name: CENTRIFUGO_REDIS_SENTINEL_PASSWORD
+            - name: CENTRIFUGO_ENGINE_REDIS_SENTINEL_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: redisSentinelPassword
                   optional: true
-            - name: CENTRIFUGO_NATS_URL
+            - name: CENTRIFUGO_BROKER_NATS_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
