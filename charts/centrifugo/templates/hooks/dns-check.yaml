@@ -1,0 +1,100 @@
+{{- if .Values.hostCheck.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "centrifugo.fullname" . }}-host-check
+  namespace: {{ include "centrifugo.namespace" . }}
+  labels:
+    {{- include "centrifugo.labels" . | nindent 4 }}
+    tier: host-check
+  annotations:
+    {{- if .Values.hostCheck.annotations }}
+    {{- toYaml .Values.hostCheck.annotations | nindent 4 }}
+    {{- end }}
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "centrifugo.labels" . | nindent 8 }}
+        tier: host-check
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: host-checker
+          image: "{{ .Values.hostCheck.image }}"
+          env:
+            - name: REMOTE_HOST
+              value: "{{ .Values.hostCheck.remoteHost }}"
+            {{- if .Values.hostCheck.customDns }}
+            - name: CUSTOM_DNS
+              value: "{{ .Values.hostCheck.customDns }}"
+            {{- end }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting DNS validation for $REMOTE_HOST..."
+              DNS_NAME=$REMOTE_HOST
+              MAX_RETRIES=10
+              RETRY_COUNT=0
+              BACKOFF=2 # Initial backoff in seconds
+
+              resolve_dns() {
+                local dns_server=$1
+                if [ -z "$dns_server" ]; then
+                  dig +short $DNS_NAME A 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
+                else
+                  dig +short $DNS_NAME A @$dns_server 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
+                fi
+              }
+
+              while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                echo ""
+                echo "Attempt $((RETRY_COUNT + 1)): Resolving $DNS_NAME..."
+
+                # Default DNS resolution
+                echo "Using default DNS server to resolve $DNS_NAME..."
+                RESOLVED_DEFAULT=$(resolve_dns "")
+                if [ -z "$RESOLVED_DEFAULT" ]; then
+                  echo "Default DNS resolution failed for $DNS_NAME."
+                else
+                  echo "Default DNS resolution successful: $DNS_NAME resolved to:"
+                  echo "$RESOLVED_DEFAULT"
+                fi
+
+                # Custom DNS resolution (only if CUSTOM_DNS is provided)
+                if [ -n "$CUSTOM_DNS" ]; then
+                  echo "Using custom DNS server ($CUSTOM_DNS) to resolve $DNS_NAME..."
+                  RESOLVED_CUSTOM=$(resolve_dns "$CUSTOM_DNS")
+                  if [ -z "$RESOLVED_CUSTOM" ]; then
+                    echo "Custom DNS resolution failed for $DNS_NAME using $CUSTOM_DNS."
+                  else
+                    echo "Custom DNS resolution successful: $DNS_NAME resolved to:"
+                    echo "$RESOLVED_CUSTOM"
+                  fi
+                fi
+
+                # Check success conditions
+                if [ -n "$RESOLVED_DEFAULT" ] && { [ -z "$CUSTOM_DNS" ] || [ -n "$RESOLVED_CUSTOM" ]; }; then
+                  echo ""
+                  echo "DNS resolution successful using the required DNS servers."
+                  exit 0
+                fi
+
+                # Retry logic
+                echo "Retrying in $BACKOFF seconds..."
+                sleep $BACKOFF
+                BACKOFF=$((BACKOFF * 2)) # Exponential backoff
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+              done
+
+              echo ""
+              echo "DNS resolution failed for the required DNS servers after $MAX_RETRIES attempts."
+              exit 1
+          resources:
+            {{- toYaml .Values.hostCheck.resources | nindent 12 }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      activeDeadlineSeconds: 300
+  backoffLimit: 2
+{{- end }}
