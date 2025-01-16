@@ -283,7 +283,7 @@ We also left names of secrets the same in v12. Maybe those will be updated in ne
 
 ### v10 -> v11
 
-Major bump to 11.0.0 caused by breaking change in horizontal pod autoscaling configuration. See changes in https://github.com/centrifugal/helm-charts/pull/64 for more details. TLDR: cpu scaling should be explicitly enabled now, cpu and memory configuration moved to nested object, both now have `enabled` flags for granular configuraion.
+Major bump to 11.0.0 caused by breaking change in horizontal pod autoscaling configuration. See changes in [pull/64](https://github.com/centrifugal/helm-charts/pull/64) for more details. TLDR: cpu scaling should be explicitly enabled now, cpu and memory configuration moved to nested object, both now have `enabled` flags for granular configuraion.
 
 ### v9 -> v10
 
