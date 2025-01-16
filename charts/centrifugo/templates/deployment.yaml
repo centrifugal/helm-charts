@@ -88,11 +88,13 @@ spec:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: adminPassword
+                  optional: true
             - name: CENTRIFUGO_ADMIN_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "centrifugo.secretName" . }}
                   key: adminSecret
+                  optional: true
             - name: CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY
               valueFrom:
                 secretKeyRef:
