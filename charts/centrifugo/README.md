@@ -277,7 +277,7 @@ In v12 we are using Centrifugo v6 as base appVersion. See [Centrifugo v6.0.0 rel
 
 You need to update Centrifugo configuration according to new v6 configuration format. Otherwise, the chart works using the same principles as before.
 
-Also, we do not generate admin UI random password and secret in v12 version of chart anymore. Those are expected to be provided explicitly. 
+Also, we do not generate admin UI random password and secret in v12 version of chart anymore. Those are expected to be provided explicitly.
 
 We also left names of secrets the same in v12. Maybe those will be updated in next major release of the chart.
 
