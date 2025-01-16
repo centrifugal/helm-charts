@@ -332,3 +332,29 @@ secrets:
 
   # Centrifugo PRO license.
   license: ""
+
+  # Configuration for the hostCheck pre-installation/pre-upgrade job.
+  # This job is used to validate DNS resolution for a specific remote host
+  # using both default and custom DNS servers (if provided).
+  # It can help ensure that external dependencies or services
+  # are accessible before proceeding with the deployment.
+hostCheck:
+  enabled: false
+  # Docker image used for the host check job
+  # Ensure this image has the necessary tools (e.g., dig) to perform DNS checks, for ex. registry.k8s.io/e2e-test-images/agnhost:2.39
+  image: ""
+  # Custom DNS server to use for host resolution (e.g., 8.8.8.8 for Google DNS)
+  # If not provided, only the default DNS server will be used
+  customDns: ""
+  # The remote host that the DNS resolution check will target
+  # Replace this with the hostname you want to validate
+  remoteHost: ""
+  # Define or override annotations
+  # Examples:
+  # "helm.sh/hook": pre-install,pre-upgrade
+  # "helm.sh/hook-weight": "-1"
+  # "helm.sh/hook-delete-policy": before-hook-creation
+  annotations: {}
+  # Resources configuration for the host check job's pod
+  # You can specify CPU, memory requests, and limits here
+  resources: {}
