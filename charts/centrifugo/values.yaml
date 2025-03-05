@@ -223,6 +223,10 @@ deploymentStrategy: {}
   #   maxSurge: 0
   #   maxUnavailable: 1
 
+extraContainers: []
+#  - name: my-sidecar
+#    image: nginx:latest
+
 metrics:
   enabled: false
   serviceMonitor:
