@@ -1,0 +1,32 @@
+name: Release Charts on OCI
+
+on:
+  push:
+    tags:
+      - "centrifugo-*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Fetch history
+        run: git fetch --prune --unshallow
+
+      - name: Set up helm
+        uses: azure/setup-helm@v4
+
+      - name: login to github container registry using helm
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io/centrifugal/helm-charts --username ${{ github.repository_owner }} --password-stdin
+
+      - name: package centrifugo helm chart
+        run: |
+          helm package ./charts/centrifugo
+
+      - name: publish centrifugo chart to github container registry
+        run: |
+          version=${{ github.ref_name }}
+          helm push "${version}".tgz oci://ghcr.io/centrifugal/helm-charts/centrifugo
