@@ -1,6 +1,6 @@
 # Centrifugal Kubernetes Helm Charts
 
-![Release Charts](https://github.com/centrifugal/helm-charts/workflows/Release%20Charts/badge.svg?branch=master)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/centrifugal/helm-charts/release-http.yaml?style=for-the-badge&logo=github)
 
 The code is provided as-is with no warranties.
 
@@ -20,7 +20,7 @@ You can then run `helm search repo centrifugal` to see the charts.
 
 See documentation for each specific chart:
 
-* [Centrifugo](https://github.com/centrifugal/helm-charts/tree/master/charts/centrifugo)
+- [Centrifugo](https://github.com/centrifugal/helm-charts/tree/master/charts/centrifugo)
 
 ## License
 
