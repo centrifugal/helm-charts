@@ -56,22 +56,22 @@ The command removes all the Kubernetes components associated with the chart and 
 
 The following table lists the configurable parameters of the Centrifugo chart and their default values.
 
-| Parameter                                   | Description                                                                                                          | Default                                                      |
-|---------------------------------------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
-| `global.imageRegistry`                      | Global Docker Image registry                                                                                         | `nil`                                                        |
-| `global.imagePullSecrets`                   | Global Docker registry secret names as an array                                                                      | `[]` (does not add image pull secrets to deployed pods)      |
+| Parameter                 | Description                                     | Default                                                 |
+| ------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
+| `global.imageRegistry`    | Global Docker Image registry                    | `nil`                                                   |
+| `global.imagePullSecrets` | Global Docker registry secret names as an array | `[]` (does not add image pull secrets to deployed pods) |
 
 ### Common parameters
 
 | Parameter          | Description                                      | Default |
-|--------------------|--------------------------------------------------|---------|
+| ------------------ | ------------------------------------------------ | ------- |
 | `nameOverride`     | String to partially override centrifugo.fullname | `nil`   |
 | `fullnameOverride` | String to fully override centrifugo.fullname     | `nil`   |
 
 ### Centrifugo common parameters
 
 | Parameter                            | Description                                                                                                        | Default                                                                 |
-|--------------------------------------|--------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | `image.registry`                     | Centrifugo image registry                                                                                          | `docker.io`                                                             |
 | `image.repository`                   | Centrifugo image name                                                                                              | `centrifugo/centrifugo`                                                 |
 | `image.tag`                          | Centrifugo image tag                                                                                               | Taken from chart `appVersion`                                           |
@@ -113,16 +113,16 @@ The following table lists the configurable parameters of the Centrifugo chart an
 
 ### Metrics parameters
 
-| Parameter                                   | Description                                                                                                          | Default                                                      |
-|---------------------------------------------|----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|
-| `metrics.enabled`                           | Start a side-car prometheus exporter                                                                                 | `false`                                                      |
-| `metrics.serviceMonitor.enabled`            | Create ServiceMonitor Resource for scraping metrics using PrometheusOperator                                         | `false`                                                      |
-| `metrics.serviceMonitor.namespace`          | Namespace which Prometheus is running in                                                                             | `nil`                                                        |
-| `metrics.serviceMonitor.interval`           | Interval at which metrics should be scraped                                                                          | `30s`                                                        |
-| `metrics.serviceMonitor.scrapeTimeout`      | Specify the timeout after which the scrape is ended                                                                  | `nil`                                                        |
-| `metrics.serviceMonitor.relabellings`       | Specify Metric Relabellings to add to the scrape endpoint                                                            | `nil`                                                        |
-| `metrics.serviceMonitor.honorLabels`        | honorLabels chooses the metric's labels on collisions with target labels.                                            | `false`                                                      |
-| `metrics.serviceMonitor.additionalLabels`   | Used to pass Labels that are required by the Installed Prometheus Operator                                           | `{}`                                                         |
+| Parameter                                 | Description                                                                  | Default |
+| ----------------------------------------- | ---------------------------------------------------------------------------- | ------- |
+| `metrics.enabled`                         | Start a side-car prometheus exporter                                         | `false` |
+| `metrics.serviceMonitor.enabled`          | Create ServiceMonitor Resource for scraping metrics using PrometheusOperator | `false` |
+| `metrics.serviceMonitor.namespace`        | Namespace which Prometheus is running in                                     | `nil`   |
+| `metrics.serviceMonitor.interval`         | Interval at which metrics should be scraped                                  | `30s`   |
+| `metrics.serviceMonitor.scrapeTimeout`    | Specify the timeout after which the scrape is ended                          | `nil`   |
+| `metrics.serviceMonitor.relabellings`     | Specify Metric Relabellings to add to the scrape endpoint                    | `nil`   |
+| `metrics.serviceMonitor.honorLabels`      | honorLabels chooses the metric's labels on collisions with target labels.    | `false` |
+| `metrics.serviceMonitor.additionalLabels` | Used to pass Labels that are required by the Installed Prometheus Operator   | `{}`    |
 
 _See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documentation._
 
@@ -132,9 +132,9 @@ This chart by default starts Centrifugo with Memory engine. This means that you 
 
 Centrifugo service exposes 3 ports:
 
-* for client connections from the outside of your cluster. This is called external port: 8000 by default.
-* internal port for API, Prometheus metrics, admin web interface, health checks. So these endpoints not available from the outside when enabling ingress. This is called internal port: 9000 by default.
-* GRPC API port: 10000 by default.
+- for client connections from the outside of your cluster. This is called external port: 8000 by default.
+- internal port for API, Prometheus metrics, admin web interface, health checks. So these endpoints not available from the outside when enabling ingress. This is called internal port: 9000 by default.
+- GRPC API port: 10000 by default.
 
 Ingress proxies on external port.
 
@@ -242,8 +242,8 @@ initContainers:
   - name: wait-for-redis
     image: ghcr.io/patrickdappollonio/wait-for:latest
     env:
-    - name: REDIS_ADDRESS
-      value: "redis:6379"
+      - name: REDIS_ADDRESS
+        value: "redis:6379"
     command:
       - /wait-for
     args:
@@ -252,15 +252,15 @@ initContainers:
       - --verbose
 ```
 
-### Example Nats
+### Example NATS
 
 ```yaml
 initContainers:
   - name: wait-for-nats
     image: ghcr.io/patrickdappollonio/wait-for:latest
     env:
-    - name: NATS_ADDRESS
-      value: "nats:4222"
+      - name: NATS_ADDRESS
+        value: "nats:4222"
     command:
       - /wait-for
     args:
@@ -299,15 +299,15 @@ In v8 version we are fixing an inconsistency in `existingSecret` option names re
 
 So, in `existingSecret`:
 
-* admin_password -> adminPassword
-* admin_secret -> adminSecret
-* token_hmac_secret_key -> tokenHmacSecretKey
-* api_key -> apiKey
-* grpc_api_key -> grpcApiKey
-* redis_address -> redisAddress
-* redis_password -> redisPassword
-* redis_sentinel_password -> redisSentinelPassword
-* nats_url -> natsUrl
+- admin_password -> adminPassword
+- admin_secret -> adminSecret
+- token_hmac_secret_key -> tokenHmacSecretKey
+- api_key -> apiKey
+- grpc_api_key -> grpcApiKey
+- redis_address -> redisAddress
+- redis_password -> redisPassword
+- redis_sentinel_password -> redisSentinelPassword
+- nats_url -> natsUrl
 
 ### v5 -> v6
 
@@ -316,6 +316,6 @@ v6 aims to simplify chart configuration and make it a bit more idiomatic. See pu
 - Several parameters were renamed or disappeared in favor of new ones on this major version:
   - Three type of services were moved to their own block.
   - To enable separate services use `useSeparateInternalService` and `useSeparateGrpcService` and `useSeparateUniGrpcService` flags.
-  - `ServiceMonitor` move to block `metrics` with additional parameters, `labels` renamed to `additionalLabels`  - removed configuration block `centrifugo`, all configuration under that block moved to top level.
+  - `ServiceMonitor` move to block `metrics` with additional parameters, `labels` renamed to `additionalLabels` - removed configuration block `centrifugo`, all configuration under that block moved to top level.
 
 [On November 13, 2020, Helm v2 support was formally finished](https://github.com/helm/charts#status-of-the-project), this major version is the result of the required changes applied to the Helm Chart to be able to incorporate the different features added in Helm v3 and to be consistent with the Helm project itself regarding the Helm v2 EOL.
