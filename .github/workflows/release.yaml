@@ -36,11 +36,10 @@ jobs:
         run: |
           helm package ./charts/centrifugo
 
-      - name: push charts to github container registry
+      - name: Push chart to GitHub Container Registry
+        shell: bash
         run: |
-          for pkg in .cr-release-packages/*; do
-            if [ -z "${pkg:-}" ]; then
-              break
-            fi
-            helm push "${pkg}" oci://ghcr.io/centrifugal/helm-charts/centrifugo
-          done
+          set -euo pipefail
+          pkg=$(find . -maxdepth 1 -type f -name "centrifugo-*.tgz" | sort | tail -n1)
+          echo "Pushing $pkg"
+          helm push "$pkg" oci://ghcr.io/centrifugal/helm-charts
