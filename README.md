@@ -1,6 +1,6 @@
 # Centrifugal Kubernetes Helm Charts
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/centrifugal/helm-charts/release-http.yaml?style=for-the-badge&logo=github)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/centrifugal/helm-charts/release.yaml?style=for-the-badge&logo=github)
 
 The code is provided as-is with no warranties.
 
