@@ -1,4 +1,4 @@
-name: Tag and Release Charts on HTTP
+name: Tag and Release Charts
 
 on:
   push:
