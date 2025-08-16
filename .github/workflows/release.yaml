@@ -1,0 +1,45 @@
+name: Tag and Release Charts on HTTP
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Fetch history
+        run: git fetch --prune --unshallow
+
+      - name: login to github container registry using helm
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io/centrifugal/helm-charts --username ${{ github.repository_owner }} --password-stdin
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Set up helm
+        uses: azure/setup-helm@v4
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.7.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: package centrifugo helm chart
+        run: |
+          helm package ./charts/centrifugo
+
+      - name: Push chart to GitHub Container Registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          pkg=$(find . -maxdepth 1 -type f -name "centrifugo-*.tgz" | sort | tail -n1)
+          echo "Pushing $pkg"
+          helm push "$pkg" oci://ghcr.io/centrifugal/helm-charts
