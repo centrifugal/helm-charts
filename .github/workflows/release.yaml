@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  release-to-github-pages-and-ghcr:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
