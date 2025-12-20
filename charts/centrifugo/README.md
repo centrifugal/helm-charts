@@ -66,6 +66,8 @@ helm install centrifugo charts/centrifugo \
   --set config.admin.secret=secret
 ```
 
+This is for local testing only. Do not use this approach to set secrets in production.
+
 ### 2. Wait for the pod to be ready
 
 ```bash
@@ -94,11 +96,9 @@ Alternatively, run in background with `&` (use `pkill -f "port-forward svc/centr
 # Check health endpoint
 curl -s http://localhost:9000/health
 # Expected: {}
-
-# Open admin web interface in browser
-open http://localhost:9000
-# Login with password: admin
 ```
+
+Open admin web interface in browser: http://localhost:9000 (password: `admin`).
 
 ### 5. Test WebSocket connection
 
@@ -223,7 +223,7 @@ service:
 
 ### Scaling
 
-This chart by default starts Centrifugo with **Memory engine** - only one pod can run.
+This chart by default starts Centrifugo with **Memory engine**. Running multiple pods with the Memory engine results in incorrect behavior.
 
 To scale horizontally, use **Redis engine** or **NATS broker**:
 
@@ -250,6 +250,7 @@ To expose Centrifugo to the public internet via Ingress:
 ingress:
   enabled: true
   ingressClassName: nginx
+  pathType: Prefix
   hosts:
     - host: centrifugo.example.com
       paths:
@@ -280,6 +281,7 @@ config:
 ingress:
   enabled: true
   ingressClassName: nginx
+  pathType: Prefix
   annotations:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
@@ -296,6 +298,7 @@ ingress:
 ingress:
   enabled: true
   ingressClassName: haproxy
+  pathType: Prefix
   annotations:
     haproxy.org/timeout-tunnel: "3600s"
   hosts:
@@ -326,6 +329,7 @@ helm upgrade centrifugo centrifugal/centrifugo \
   --set config.client.allowed_origins[0]="*" \
   --set ingress.enabled=true \
   --set ingress.ingressClassName=nginx \
+  --set ingress.pathType=Prefix \
   --set ingress.hosts[0].host=centrifugo.local \
   --set ingress.hosts[0].paths[0]=/connection \
   --set ingress.hosts[0].paths[1]=/emulation \
@@ -376,6 +380,7 @@ helm upgrade centrifugo centrifugal/centrifugo \
   --set config.client.allowed_origins[0]="*" \
   --set ingress.enabled=true \
   --set ingress.ingressClassName=haproxy \
+  --set ingress.pathType=Prefix \
   --set ingress.hosts[0].host=centrifugo.local \
   --set ingress.hosts[0].paths[0]=/connection \
   --set ingress.hosts[0].paths[1]=/emulation \
@@ -419,6 +424,7 @@ When using [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-
 ingress:
   enabled: true
   ingressClassName: alb
+  pathType: Prefix
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
@@ -444,6 +450,10 @@ serviceAccount:
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/centrifugo-role
 ```
+
+The ALB health check configuration above assumes that the Centrifugo internal port (default 9000) is exposed on the same Service targeted by the Ingress.
+
+If you enable separate Services (useSeparateInternalService, useSeparateGrpcService, or useSeparateUniGrpcService) or override ports, the ALB health check must be updated to target the Service and port that exposes the internal /health endpoint. Otherwise, targets will remain unhealthy.
 
 #### GCP GKE Ingress
 
@@ -473,6 +483,7 @@ service:
 ingress:
   enabled: true
   ingressClassName: gce
+  pathType: Prefix
   annotations:
     kubernetes.io/ingress.global-static-ip-name: centrifugo-ip
   hosts:
@@ -734,20 +745,28 @@ See [Centrifugo configuration documentation](https://centrifugal.dev/docs/server
 
 ### Vault Agent Injector
 
-If you have the [Vault Agent Injector](https://developer.hashicorp.com/vault/docs/platform/k8s/injector) installed, you can inject secrets directly into pods:
+If you have the [Vault Agent Injector](https://developer.hashicorp.com/vault/docs/platform/k8s/injector) installed, you can inject secrets directly into pods. The template creates environment variable definitions that are sourced before Centrifugo starts:
 
 ```yaml
 podAnnotations:
   vault.hashicorp.com/agent-inject: "true"
   vault.hashicorp.com/role: "centrifugo"
-  vault.hashicorp.com/agent-inject-secret-config: "secret/data/centrifugo"
-  vault.hashicorp.com/agent-inject-template-config: |
+  vault.hashicorp.com/agent-inject-secret-env: "secret/data/centrifugo"
+  vault.hashicorp.com/agent-inject-template-env: |
     {{- with secret "secret/data/centrifugo" -}}
     export CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY="{{ .Data.data.tokenHmacSecretKey }}"
     export CENTRIFUGO_ADMIN_PASSWORD="{{ .Data.data.adminPassword }}"
     export CENTRIFUGO_ADMIN_SECRET="{{ .Data.data.adminSecret }}"
     export CENTRIFUGO_HTTP_API_KEY="{{ .Data.data.apiKey }}"
     {{- end }}
+  vault.hashicorp.com/agent-inject-command-env: "source /vault/secrets/env && exec centrifugo"
+
+# Override the default command to source the secrets
+command:
+  - /bin/sh
+  - -c
+args:
+  - source /vault/secrets/env && centrifugo --health.enabled --prometheus.enabled --http_server.port=8000 --http_server.internal_port=9000 --grpc_api.enabled --grpc_api.port=10000 --uni_grpc.port=11000
 ```
 
 ### External Secrets Operator
@@ -856,7 +875,6 @@ envSecret:
 ```console
 helm install redis bitnami/redis \
   --set auth.enabled=false \
-  --set cluster.enabled=true \
   --set sentinel.enabled=true
 ```
 
