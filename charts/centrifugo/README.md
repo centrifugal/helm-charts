@@ -21,6 +21,12 @@ For Centrifugo configuration options, see the [official documentation](https://c
   - [Ingress for Public Access](#ingress-for-public-access)
     - [Full NGINX Ingress Example (Minikube)](#full-nginx-ingress-example-minikube)
     - [Full HAProxy Ingress Example (Minikube)](#full-haproxy-ingress-example-minikube)
+- [Production Deployment](#production-deployment)
+  - [Resource Considerations](#resource-considerations)
+  - [High Availability Example](#high-availability-example)
+  - [Graceful Shutdown](#graceful-shutdown)
+  - [Health Probes](#health-probes)
+  - [Troubleshooting](#troubleshooting)
 - [Configuration](#configuration)
 - [Secret Management](#secret-management)
 - [Using with HashiCorp Vault](#using-with-hashicorp-vault)
@@ -402,6 +408,149 @@ curl -i -N \
 ```
 
 You should see a `101 Switching Protocols` response, confirming WebSocket works through the Ingress.
+
+## Production Deployment
+
+This section provides guidance for deploying Centrifugo in production environments. These are starting points—adjust based on your specific workload, traffic patterns, and infrastructure requirements.
+
+### Resource Considerations
+
+Centrifugo is primarily **memory-bound**. Each client connection consumes memory for connection state, buffers, and channel subscriptions. CPU usage is generally low unless you have high message throughput.
+
+**Starting point for resource allocation:**
+
+```yaml
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+    # Note: CPU limits are often omitted intentionally to avoid throttling
+```
+
+Key factors affecting resource needs:
+- **Connection count** — primary memory driver
+- **Message throughput** — affects CPU
+- **Channel subscriptions per connection** — additional memory overhead
+- **Message size and history** — if using cache/history features
+
+Monitor actual usage with Prometheus metrics (`centrifugo_node_num_clients`, memory/CPU metrics) and adjust accordingly. See [Centrifugo observability documentation](https://centrifugal.dev/docs/server/observability) for available metrics.
+
+### High Availability Example
+
+For production deployments requiring high availability, you need:
+
+1. **Multiple replicas** with a distributed engine (Redis or NATS)
+2. **Pod distribution** across nodes/zones
+3. **Disruption budget** for safe rollouts
+
+```yaml
+replicaCount: 3
+
+# Distributed engine for multi-replica deployment
+config:
+  engine:
+    type: redis
+    redis:
+      address: redis://redis-master:6379
+
+# Spread pods across nodes
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: centrifugo
+
+# Alternative: use affinity for hard anti-affinity requirement
+# affinity:
+#   podAntiAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#       - labelSelector:
+#           matchLabels:
+#             app.kubernetes.io/name: centrifugo
+#         topologyKey: kubernetes.io/hostname
+
+# Ensure minimum availability during updates
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2  # or use maxUnavailable: 1
+
+# Resource allocation
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+```
+
+### Graceful Shutdown
+
+When a pod terminates, Kubernetes removes it from Service endpoints while simultaneously sending SIGTERM to the container. These operations happen concurrently, creating a race condition where traffic may still be routed to a terminating pod.
+
+The chart includes a `preStop` hook that sleeps before SIGTERM is sent, allowing time for endpoint changes to propagate:
+
+```yaml
+# Default: 5 seconds (set to 0 to disable)
+preStopSleepSeconds: 5
+```
+
+The shutdown sequence becomes:
+1. Pod marked for termination
+2. `preStop` hook runs (sleep) — endpoints propagate during this time
+3. SIGTERM sent to Centrifugo
+4. Centrifugo stops accepting new connections
+5. Existing connections close gracefully
+6. Clients reconnect to other pods
+
+The default `terminationGracePeriodSeconds` (30s) includes time for both the `preStop` sleep and Centrifugo's graceful shutdown. For very high connection counts, consider increasing it:
+
+```yaml
+terminationGracePeriodSeconds: 60
+```
+
+### Health Probes
+
+The chart configures liveness and readiness probes against the `/health` endpoint on the internal port (9000). Default settings work for most deployments.
+
+For environments with slow container starts (large images, slow networks), you can tune the probes:
+
+```yaml
+livenessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  initialDelaySeconds: 3
+  periodSeconds: 5
+```
+
+### Troubleshooting
+
+**Connections dropping unexpectedly**
+- Check Ingress timeout settings (see [Ingress for Public Access](#ingress-for-public-access))
+- Verify load balancer idle timeouts
+- Ensure `allowed_origins` is configured correctly
+
+**Pods restarting (OOMKilled)**
+- Increase memory limits
+- Check connection count vs allocated memory
+- Review channel subscription patterns
+
+**Scaling not working (messages not delivered across pods)**
+- Ensure Redis or NATS engine is configured
+- Verify engine connectivity from pods
+- Check engine health
+
+**Clients unable to reconnect after pod restart**
+- Verify multiple replicas are running
+- Check PodDisruptionBudget configuration
+- Ensure clients implement reconnection logic
+
+For detailed troubleshooting, check pod logs and Centrifugo metrics. See more guidance in [Centrifugo documentation](https://centrifugal.dev).
 
 ## Configuration
 
@@ -804,6 +953,7 @@ Version 13 introduces a simplified, modern approach to secret management:
 - Default security contexts (`runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`, drop all capabilities)
 - Common labels (`app.kubernetes.io/part-of`, `app.kubernetes.io/component`)
 - Improved post-install notes with internal endpoints and verification commands
+- `preStopSleepSeconds` (default: 5) — preStop hook to avoid endpoint propagation race condition during pod termination
 
 **Fixed:**
 - Removed unused `metrics.enabled` option (metrics endpoint is always enabled on internal port, use `metrics.serviceMonitor.enabled` to create ServiceMonitor)

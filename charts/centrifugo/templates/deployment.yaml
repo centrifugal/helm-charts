@@ -123,6 +123,12 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if gt (int .Values.preStopSleepSeconds) 0 }}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "{{ .Values.preStopSleepSeconds }}"]
+          {{- end }}
       {{- if .Values.extraContainers }}
         {{- toYaml .Values.extraContainers | nindent 8 }}
       {{- end }}

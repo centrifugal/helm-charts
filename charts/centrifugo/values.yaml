@@ -235,6 +235,11 @@ podDisruptionBudget:
 
 terminationGracePeriodSeconds: 30
 
+# Seconds to sleep before sending SIGTERM to the container.
+# Helps avoid race condition where traffic is still routed to terminating pod.
+# Set to 0 to disable preStop hook.
+preStopSleepSeconds: 5
+
 podAnnotations: {}
 podLabels: {}
 
