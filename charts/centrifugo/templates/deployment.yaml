@@ -25,7 +25,6 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -83,81 +82,15 @@ spec:
             - --uni_grpc.port
             - "{{ .Values.uniGrpcService.port }}"
           env:
-            - name: CENTRIFUGO_ADMIN_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: adminPassword
-                  optional: true
-            - name: CENTRIFUGO_ADMIN_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: adminSecret
-                  optional: true
-            - name: CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: tokenHmacSecretKey
-                  optional: true
-            - name: CENTRIFUGO_HTTP_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: apiKey
-                  optional: true
-            - name: CENTRIFUGO_GRPC_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: grpcApiKey
-                  optional: true
-            - name: CENTRIFUGO_ENGINE_REDIS_ADDRESS
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: redisAddress
-                  optional: true
-            - name: CENTRIFUGO_ENGINE_REDIS_USER
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: redisUser
-                  optional: true
-            - name: CENTRIFUGO_ENGINE_REDIS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: redisPassword
-                  optional: true
-            - name: CENTRIFUGO_ENGINE_REDIS_SENTINEL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: redisSentinelPassword
-                  optional: true
-            - name: CENTRIFUGO_BROKER_NATS_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: natsUrl
-                  optional: true
-            - name: CENTRIFUGO_LICENSE
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "centrifugo.secretName" . }}
-                  key: license
-                  optional: true
-            {{- range .Values.envSecret }}
-            - name: {{ .name }}
-              valueFrom:
-                secretKeyRef: 
-                  {{- tpl (toYaml .secretKeyRef) $ | nindent 18 }}
-            {{- end }}
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               value: {{ $value | quote }}
+            {{- end }}
+            {{- range .Values.envSecret }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  {{- toYaml .secretKeyRef | nindent 18 }}
             {{- end }}
           volumeMounts:
             - name: "{{ include "centrifugo.fullname" . }}-config"

@@ -24,6 +24,10 @@ priorityClassName: ""
 # Annotations to be added to the deployment
 annotations: {}
 
+## Main service configuration.
+## By default, this service exposes all ports (external, internal, grpc, uni-grpc).
+## Use useSeparateInternalService, useSeparateGrpcService, useSeparateUniGrpcService
+## to split ports into dedicated services with their own configuration.
 service:
   ## Service type
   ##
@@ -35,6 +39,9 @@ service:
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
   ##
   nodePort: ""
+  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  ## Set to "None" for headless service.
+  # clusterIP: ""
   ## Provide any additional annotations which may be required
   ##
   annotations: {}
@@ -52,6 +59,9 @@ service:
   ## Use separate service for GRPC unidirectional stream. It could be useful for configuring same port number for all services.
   useSeparateUniGrpcService: false
 
+## Internal service configuration.
+## Note: These settings only apply when service.useSeparateInternalService is true.
+## Otherwise, internal port is exposed on the main service above.
 internalService:
   port: 9000
   type: ClusterIP
@@ -59,6 +69,8 @@ internalService:
   nodePort: ""
   # Static NodePort, if set.
   # nodePort: 30101
+  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  # clusterIP: ""
   annotations: {}
     # prometheus.io/scrape: "true"
     # prometheus.io/path: "/metrics"
@@ -67,23 +79,33 @@ internalService:
   labels: {}
   appProtocol: ""
 
+## GRPC API service configuration.
+## Note: These settings only apply when service.useSeparateGrpcService is true.
+## Otherwise, GRPC API port is exposed on the main service above.
 grpcService:
   port: 10000
   type: ClusterIP
   nodePort: ""
   # Static NodePort, if set.
   # nodePort: 30102
+  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  # clusterIP: ""
   annotations: {}
   ## Specify custom appProtocol for a service port.
   labels: {}
   appProtocol: ""
 
+## Unidirectional GRPC service configuration.
+## Note: These settings only apply when service.useSeparateUniGrpcService is true.
+## Otherwise, uni GRPC port is exposed on the main service above.
 uniGrpcService:
   port: 11000
   type: ClusterIP
   nodePort: ""
   # Static NodePort, if set.
   # nodePort: 30103
+  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  # clusterIP: ""
   annotations: {}
   ## Specify custom appProtocol for a service port.
   labels: {}
@@ -227,8 +249,10 @@ extraContainers: []
 #  - name: my-sidecar
 #    image: nginx:latest
 
+## Prometheus metrics configuration.
+## Note: Prometheus metrics endpoint (/metrics) is always enabled on the internal port.
+## This section configures the ServiceMonitor for Prometheus Operator.
 metrics:
-  enabled: false
   serviceMonitor:
     enabled: false
     ## Specify the namespace in which the serviceMonitor resource will be created
@@ -263,13 +287,50 @@ affinity: {}
 dnsPolicy: ""
 dnsConfig: {}
 
-# Additional environment variables to be passed to Centrifugo container.
-env: {}
+# ============================================
+# ENVIRONMENT VARIABLES
+# ============================================
 
-# Additional secret environment variables to be passed to Centrifugo container.
+# Additional environment variables to be passed to Centrifugo container.
+# Use for non-sensitive configuration that overrides config file options.
+env: {}
+  # CENTRIFUGO_LOG_LEVEL: "debug"
+
+# Secret environment variables - reference external Kubernetes secrets.
+# Use for sensitive configuration (tokens, passwords, API keys, etc.).
+# The chart does NOT create secrets - you manage them externally.
 envSecret: []
+  # - name: CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: client.token.hmac_secret_key
+  # - name: CENTRIFUGO_ADMIN_PASSWORD
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: admin.password
+  # - name: CENTRIFUGO_ADMIN_SECRET
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: admin.secret
+  # - name: CENTRIFUGO_HTTP_API_KEY
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: http_api.key
+  # - name: CENTRIFUGO_GRPC_API_KEY
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: grpc_api.key
+  # - name: CENTRIFUGO_LICENSE
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: license
+
+# ============================================
+# CENTRIFUGO CONFIGURATION
+# ============================================
 
 # Centrifugo configuration, will be transformed into config.json file.
+# See https://centrifugal.dev/docs/server/configuration for all options.
 config:
   # Engine to use. Default memory engine allows running only one Centrifugo pod.
   # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
@@ -284,6 +345,10 @@ config:
   # Array of namespaces.
   channel:
     namespaces: []
+
+# ============================================
+# VOLUMES
+# ============================================
 
 # Additional volumes for Centrifugo deployment.
 volumes: []
@@ -306,45 +371,15 @@ topologySpreadConstraints: ""
 # see https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
 initContainers: ""
 
-# existingSecret: my-secret
+# ============================================
+# HOST CHECK JOB
+# ============================================
 
-# Centrifugo secrets.
-secrets:
-  # Secret key for HMAC tokens.
-  tokenHmacSecretKey: ""
-
-  # Admin password used to protect access to web interface.
-  adminPassword: ""
-
-  # Admin secret used to create auth tokens on user login into admin web interface.
-  adminSecret: ""
-
-  # Centrifugo api_key for Centrifugo API endpoint authorization.
-  apiKey: ""
-
-  # Centrifugo grpc_api_key for Centrifugo GRPC API authorization.
-  grpcApiKey: ""
-
-  # Connection string to Redis.
-  redisAddress: ""
-
-  # Password for Redis.
-  redisPassword: ""
-
-  # Password for Redis Sentinel.
-  redisSentinelPassword: ""
-
-  # Connection string to Nats.
-  natsUrl: ""
-
-  # Centrifugo PRO license.
-  license: ""
-
-  # Configuration for the hostCheck pre-installation/pre-upgrade job.
-  # This job is used to validate DNS resolution for a specific remote host
-  # using both default and custom DNS servers (if provided).
-  # It can help ensure that external dependencies or services
-  # are accessible before proceeding with the deployment.
+# Configuration for the hostCheck pre-installation/pre-upgrade job.
+# This job is used to validate DNS resolution for a specific remote host
+# using both default and custom DNS servers (if provided).
+# It can help ensure that external dependencies or services
+# are accessible before proceeding with the deployment.
 hostCheck:
   enabled: false
   # Docker image used for the host check job

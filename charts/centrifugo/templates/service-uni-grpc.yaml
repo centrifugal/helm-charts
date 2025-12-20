@@ -15,6 +15,9 @@ metadata:
   {{- end }}
 spec:
   type: {{ .Values.uniGrpcService.type }}
+  {{- if and (eq .Values.uniGrpcService.type "ClusterIP") .Values.uniGrpcService.clusterIP }}
+  clusterIP: {{ .Values.uniGrpcService.clusterIP }}
+  {{- end }}
   ports:
     - port: {{ .Values.uniGrpcService.port }}
       targetPort: uni-grpc

@@ -15,10 +15,8 @@ metadata:
   {{- end }}
 spec:
   type: {{ .Values.grpcService.type }}
-  {{- if (eq .Values.grpcService.type "ClusterIP") }}
-  {{- with .Values.grpcService.clusterIP }}
-  clusterIP: {{ . }}
-  {{- end }}
+  {{- if and (eq .Values.grpcService.type "ClusterIP") .Values.grpcService.clusterIP }}
+  clusterIP: {{ .Values.grpcService.clusterIP }}
   {{- end }}
   ports:
     - port: {{ .Values.grpcService.port }}

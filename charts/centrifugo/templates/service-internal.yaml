@@ -15,6 +15,9 @@ metadata:
   {{- end }}
 spec:
   type: {{ .Values.internalService.type }}
+  {{- if and (eq .Values.internalService.type "ClusterIP") .Values.internalService.clusterIP }}
+  clusterIP: {{ .Values.internalService.clusterIP }}
+  {{- end }}
   ports:
     - port: {{ .Values.internalService.port }}
       targetPort: internal
