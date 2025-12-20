@@ -2,10 +2,107 @@
 
 This chart bootstraps a [Centrifugo](https://centrifugal.dev) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Quick Start (Local Testing with Minikube)](#quick-start-local-testing-with-minikube)
+- [Get Repo Info](#get-repo-info)
+- [Install Chart](#install-chart)
+- [Uninstall Chart](#uninstall-chart)
+- [Upgrading Chart](#upgrading-chart)
+- [Concepts](#concepts)
+  - [Architecture](#architecture)
+  - [Service Design](#service-design)
+  - [Scaling](#scaling)
+  - [Ingress for Public Access](#ingress-for-public-access)
+    - [Full NGINX Ingress Example (Minikube)](#full-nginx-ingress-example-minikube)
+    - [Full HAProxy Ingress Example (Minikube)](#full-haproxy-ingress-example-minikube)
+- [Configuration](#configuration)
+- [Secret Management](#secret-management)
+- [Using with HashiCorp Vault](#using-with-hashicorp-vault)
+- [Scale with Redis Engine](#scale-with-redis-engine)
+- [With Nats Broker](#with-nats-broker)
+- [Using initContainers](#using-initcontainers)
+- [Parameters](#parameters)
+- [Upgrading](#upgrading)
+
 ## Prerequisites
 
 - Kubernetes 1.21+
 - Helm 3+
+
+## Quick Start (Local Testing with Minikube)
+
+This section shows how to quickly test Centrifugo locally using Minikube.
+
+### 1. Start Minikube and install Centrifugo
+
+```bash
+minikube start
+helm repo add centrifugal https://centrifugal.github.io/helm-charts
+helm repo update
+helm install centrifugo centrifugal/centrifugo \
+  --set config.admin.password=admin \
+  --set config.admin.secret=secret
+```
+
+Or from local chart:
+
+```bash
+helm install centrifugo charts/centrifugo \
+  --set config.admin.password=admin \
+  --set config.admin.secret=secret
+```
+
+### 2. Wait for the pod to be ready
+
+```bash
+kubectl get pods -w
+```
+
+Wait until the pod status shows `Running` and `1/1` ready.
+
+### 3. Access Centrifugo
+
+Open port-forwards to access Centrifugo services (each in a separate terminal):
+
+```bash
+# Terminal 1: Internal port (for admin UI, API, metrics)
+kubectl port-forward svc/centrifugo 9000:9000
+
+# Terminal 2: External port (for client WebSocket connections)
+kubectl port-forward svc/centrifugo 8000:8000
+```
+
+Alternatively, run in background with `&` (use `pkill -f "port-forward svc/centrifugo"` to stop).
+
+### 4. Verify it's working
+
+```bash
+# Check health endpoint
+curl -s http://localhost:9000/health
+# Expected: {}
+
+# Open admin web interface in browser
+open http://localhost:9000
+# Login with password: admin
+```
+
+### 5. Test WebSocket connection
+
+You can test WebSocket connectivity using [wscat](https://github.com/websockets/wscat):
+
+```bash
+npm install -g wscat
+wscat -c ws://localhost:8000/connection/websocket
+```
+
+### 6. Cleanup
+
+```bash
+helm uninstall centrifugo
+minikube stop
+```
 
 ## Get Repo Info
 
@@ -46,16 +143,258 @@ _See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documen
 
 ## Concepts
 
-This chart by default starts Centrifugo with Memory engine. This means that you can only run one Centrifugo instance pod in default setup. If you need to run more pods to scale and load-balance connections between them - run Centrifugo with Redis engine or with Nats broker (for at most once PUB/SUB only). See examples below.
+### Architecture
 
-Centrifugo service exposes several ports:
+Centrifugo exposes 4 ports, each serving different purposes:
 
-- **External port (8000)**: for client connections from outside your cluster
-- **Internal port (9000)**: for API, Prometheus metrics, admin web interface, health checks (not exposed via ingress by default)
-- **GRPC API port (10000)**: for GRPC API
-- **Uni GRPC port (11000)**: for unidirectional GRPC stream
+```
+                                    ┌─────────────────────────────────────┐
+                                    │           Centrifugo Pod            │
+                                    │                                     │
+┌─────────────┐    Ingress          │  ┌───────────────────────────────┐  │
+│   Clients   │───────────────────────▶│  External (8000)              │  │
+│  (browser)  │    WebSocket/       │  │  - Client connections         │  │
+└─────────────┘    SSE/HTTP         │  │  - WebSocket, SSE, HTTP       │  │
+                                    │  └───────────────────────────────┘  │
+                                    │                                     │
+┌─────────────┐    Internal only    │  ┌───────────────────────────────┐  │
+│  Backend    │───────────────────────▶│  Internal (9000)              │  │
+│  Services   │    (ClusterIP)      │  │  - Server API (publish, etc)  │  │
+└─────────────┘                     │  │  - Admin UI, Prometheus       │  │
+                                    │  │  - Health checks              │  │
+                                    │  └───────────────────────────────┘  │
+                                    │                                     │
+┌─────────────┐    Internal only    │  ┌───────────────────────────────┐  │
+│  Backend    │───────────────────────▶│  GRPC API (10000)             │  │
+│  Services   │    (ClusterIP)      │  │  - Bidirectional GRPC API     │  │
+└─────────────┘                     │  └───────────────────────────────┘  │
+                                    │                                     │
+┌─────────────┐    Ingress          │  ┌───────────────────────────────┐  │
+│   Clients   │───────────────────────▶│  Uni GRPC (11000)             │  │
+│  (mobile)   │    gRPC stream      │  │  - Unidirectional GRPC stream │  │
+└─────────────┘                     │  └───────────────────────────────┘  │
+                                    │                                     │
+                                    └─────────────────────────────────────┘
+```
 
-Ingress proxies on external port only.
+### Service Design
+
+By default, **all ports are exposed via a single Kubernetes Service**. This is simple and works for most cases.
+
+For advanced deployments, you can split ports into **separate Services** using:
+
+```yaml
+service:
+  useSeparateInternalService: true   # Creates centrifugo-internal service
+  useSeparateGrpcService: true       # Creates centrifugo-grpc service
+  useSeparateUniGrpcService: true    # Creates centrifugo-uni-grpc service
+```
+
+**Why separate services?**
+
+| Use Case | Solution |
+|----------|----------|
+| Use same port (e.g., 443) for all services with different hostnames | Separate services + separate Ingresses |
+| Different load balancing for GRPC vs HTTP | Separate services with different annotations |
+| Restrict internal API access with NetworkPolicy | Separate internal service to target with policy |
+| Different service types (LoadBalancer for external, ClusterIP for internal) | Separate services with different types |
+
+### Scaling
+
+This chart by default starts Centrifugo with **Memory engine** - only one pod can run.
+
+To scale horizontally, use **Redis engine** or **NATS broker**:
+
+```bash
+# With Redis
+helm install centrifugo centrifugal/centrifugo \
+  --set config.engine.type=redis \
+  --set config.engine.redis.address=redis://redis:6379 \
+  --set replicaCount=3
+
+# With NATS (at-most-once delivery only)
+helm install centrifugo centrifugal/centrifugo \
+  --set config.broker.enabled=true \
+  --set config.broker.type=nats \
+  --set config.broker.nats.url=nats://nats:4222 \
+  --set replicaCount=3
+```
+
+### Ingress for Public Access
+
+To expose Centrifugo to the public internet via Ingress:
+
+```yaml
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hosts:
+    - host: centrifugo.example.com
+      paths:
+        - /connection    # WebSocket, HTTP-streaming, SSE, etc.
+        - /emulation     # Emulation endpoint.
+  tls:
+    - secretName: centrifugo-tls
+      hosts:
+        - centrifugo.example.com
+
+config:
+  client:
+    allowed_origins:
+      - https://yourdomain.com
+```
+
+**Important:** Centrifugo maintains many persistent connections. Your Ingress controller must be tuned for high connection counts:
+
+| Setting | Description | Recommendation |
+|---------|-------------|----------------|
+| Open file limits | Max connections per process | Increase `ulimit -n` (e.g., 65535+) |
+| Ephemeral ports | Outbound connection ports | Expand range: `net.ipv4.ip_local_port_range = 1024 65535` |
+| Timeouts | WebSocket idle timeout | Increase read/send timeouts (e.g., 3600s) |
+
+#### NGINX Ingress Controller
+
+```yaml
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: centrifugo.example.com
+      paths:
+        - /connection
+        - /emulation
+```
+
+#### HAProxy Ingress Controller
+
+```yaml
+ingress:
+  enabled: true
+  ingressClassName: haproxy
+  annotations:
+    haproxy.org/timeout-tunnel: "3600s"
+  hosts:
+    - host: centrifugo.example.com
+      paths:
+        - /connection
+        - /emulation
+```
+
+Ensure your Ingress Controller deployment has appropriate resource limits and system settings. See [Centrifugo infrastructure tuning guide](https://centrifugal.dev/docs/server/infra_tuning) for details.
+
+#### Full NGINX Ingress Example (Minikube)
+
+This example assumes Centrifugo is already running as shown in the [Quick Start](#quick-start-local-testing-with-minikube) section.
+
+##### 1. Enable NGINX Ingress addon in Minikube
+
+```bash
+minikube addons enable ingress
+```
+
+##### 2. Update Centrifugo with Ingress enabled
+
+```bash
+helm upgrade centrifugo centrifugal/centrifugo \
+  --set config.admin.password=admin \
+  --set config.admin.secret=secret \
+  --set config.client.allowed_origins[0]="*" \
+  --set ingress.enabled=true \
+  --set ingress.ingressClassName=nginx \
+  --set ingress.hosts[0].host=centrifugo.local \
+  --set ingress.hosts[0].paths[0]=/connection \
+  --set ingress.hosts[0].paths[1]=/emulation \
+  --set ingress.annotations."nginx\.ingress\.kubernetes\.io/proxy-read-timeout"=3600 \
+  --set ingress.annotations."nginx\.ingress\.kubernetes\.io/proxy-send-timeout"=3600
+```
+
+##### 3. Add hostname to /etc/hosts
+
+Get the Minikube IP and add it to your hosts file:
+
+```bash
+echo "$(minikube ip) centrifugo.local" | sudo tee -a /etc/hosts
+```
+
+##### 4. Test the connection
+
+```bash
+# Test WebSocket endpoint through Ingress
+curl -i -N \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  -H "Sec-WebSocket-Version: 13" \
+  "http://centrifugo.local/connection/websocket"
+```
+
+You should see a `101 Switching Protocols` response, confirming WebSocket works through the Ingress.
+
+#### Full HAProxy Ingress Example (Minikube)
+
+This example assumes Centrifugo is already running as shown in the [Quick Start](#quick-start-local-testing-with-minikube) section.
+
+##### 1. Enable Ingress addon in Minikube
+
+```bash
+minikube addons enable ingress
+```
+
+Note: Minikube uses NGINX by default. To use HAProxy instead:
+
+```bash
+minikube addons disable ingress
+helm repo add haproxytech https://haproxytech.github.io/helm-charts
+helm install haproxy-ingress haproxytech/kubernetes-ingress \
+  --set controller.service.type=NodePort
+```
+
+##### 2. Update Centrifugo with Ingress enabled
+
+```bash
+helm upgrade centrifugo centrifugal/centrifugo \
+  --set config.admin.password=admin \
+  --set config.admin.secret=secret \
+  --set config.client.allowed_origins[0]="*" \
+  --set ingress.enabled=true \
+  --set ingress.ingressClassName=haproxy \
+  --set ingress.hosts[0].host=centrifugo.local \
+  --set ingress.hosts[0].paths[0]=/connection \
+  --set ingress.hosts[0].paths[1]=/emulation \
+  --set ingress.annotations."haproxy\.org/timeout-tunnel"=3600s
+```
+
+##### 3. Add hostname to /etc/hosts
+
+Get the Minikube IP and add it to your hosts file:
+
+```bash
+echo "$(minikube ip) centrifugo.local" | sudo tee -a /etc/hosts
+```
+
+##### 4. Get the Ingress controller NodePort
+
+```bash
+export INGRESS_PORT=$(kubectl get svc haproxy-ingress-kubernetes-ingress -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}')
+echo "Ingress available at: http://centrifugo.local:$INGRESS_PORT"
+```
+
+##### 5. Test the connection
+
+```bash
+# Test WebSocket endpoint through Ingress
+curl -i -N \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  -H "Sec-WebSocket-Version: 13" \
+  "http://centrifugo.local:$INGRESS_PORT/connection/websocket"
+```
+
+You should see a `101 Switching Protocols` response, confirming WebSocket works through the Ingress.
 
 ## Configuration
 
@@ -148,7 +487,7 @@ Any Centrifugo configuration option can be passed as a secret. Convert the confi
 | `engine.redis.password` | `CENTRIFUGO_ENGINE_REDIS_PASSWORD` |
 | `license` | `CENTRIFUGO_LICENSE` |
 
-See [Centrifugo configuration documentation](https://centrifugal.dev/docs/server/configuration) for all available options.
+See [Centrifugo configuration documentation](https://centrifugal.dev/docs/server/configuration) for environment variable rules.
 
 ## Using with HashiCorp Vault
 
