@@ -413,7 +413,7 @@ You should see a `101 Switching Protocols` response, confirming WebSocket works 
 
 #### AWS ALB Ingress (EKS)
 
-When using [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/), configure the ALB for WebSocket connections:
+When using [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/), TLS terminates at the ALB using ACM certificates. Traffic from ALB to pods is HTTP.
 
 ```yaml
 ingress:
@@ -424,10 +424,10 @@ ingress:
     alb.ingress.kubernetes.io/target-type: ip
     # WebSocket idle timeout (max 4000 seconds for ALB)
     alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
-    # Health check configuration
+    # Health check on internal port
     alb.ingress.kubernetes.io/healthcheck-path: /health
     alb.ingress.kubernetes.io/healthcheck-port: "9000"
-    # Optional: restrict to HTTPS
+    # TLS with ACM certificate
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
   hosts:
@@ -447,7 +447,9 @@ serviceAccount:
 
 #### GCP GKE Ingress
 
-GKE Ingress requires a `BackendConfig` for WebSocket timeout configuration. First, create a BackendConfig:
+GKE Ingress terminates TLS at the Google Cloud Load Balancer. Traffic to pods is HTTP. A `BackendConfig` is required for WebSocket timeout configuration:
+
+First, create a BackendConfig:
 
 ```yaml
 apiVersion: cloud.google.com/v1
