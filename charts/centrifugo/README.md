@@ -21,6 +21,8 @@ For Centrifugo configuration options, see the [official documentation](https://c
   - [Ingress for Public Access](#ingress-for-public-access)
     - [Full NGINX Ingress Example (Minikube)](#full-nginx-ingress-example-minikube)
     - [Full HAProxy Ingress Example (Minikube)](#full-haproxy-ingress-example-minikube)
+    - [AWS ALB Ingress (EKS)](#aws-alb-ingress-eks)
+    - [GCP GKE Ingress](#gcp-gke-ingress)
 - [Production Deployment](#production-deployment)
   - [Resource Considerations](#resource-considerations)
   - [High Availability Example](#high-availability-example)
@@ -408,6 +410,87 @@ curl -i -N \
 ```
 
 You should see a `101 Switching Protocols` response, confirming WebSocket works through the Ingress.
+
+#### AWS ALB Ingress (EKS)
+
+When using [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/), configure the ALB for WebSocket connections:
+
+```yaml
+ingress:
+  enabled: true
+  ingressClassName: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    # WebSocket idle timeout (max 4000 seconds for ALB)
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
+    # Health check configuration
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-port: "9000"
+    # Optional: restrict to HTTPS
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/xxx
+  hosts:
+    - host: centrifugo.example.com
+      paths:
+        - /connection
+        - /emulation
+```
+
+For IRSA (IAM Roles for Service Accounts) if Centrifugo needs AWS API access:
+
+```yaml
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/centrifugo-role
+```
+
+#### GCP GKE Ingress
+
+GKE Ingress requires a `BackendConfig` for WebSocket timeout configuration. First, create a BackendConfig:
+
+```yaml
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: centrifugo-backend-config
+spec:
+  timeoutSec: 3600
+  connectionDraining:
+    drainingTimeoutSec: 30
+```
+
+Then configure the chart to reference it:
+
+```yaml
+service:
+  annotations:
+    cloud.google.com/backend-config: '{"default": "centrifugo-backend-config"}'
+    cloud.google.com/neg: '{"ingress": true}'
+
+ingress:
+  enabled: true
+  ingressClassName: gce
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: centrifugo-ip
+  hosts:
+    - host: centrifugo.example.com
+      paths:
+        - /connection
+        - /emulation
+  tls:
+    - secretName: centrifugo-tls
+      hosts:
+        - centrifugo.example.com
+```
+
+For Workload Identity:
+
+```yaml
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: centrifugo@PROJECT_ID.iam.gserviceaccount.com
+```
 
 ## Production Deployment
 
