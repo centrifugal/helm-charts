@@ -98,7 +98,7 @@ curl -s http://localhost:9000/health
 # Expected: {}
 ```
 
-Open admin web interface in browser: http://localhost:9000 (password: `admin`).
+Open admin web interface in browser: <http://localhost:9000> (password: `admin`).
 
 ### 5. Test WebSocket connection
 
