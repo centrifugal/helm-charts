@@ -2,11 +2,15 @@
 
 This chart bootstraps a [Centrifugo](https://centrifugal.dev) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
 
+For Centrifugo configuration options, see the [official documentation](https://centrifugal.dev/docs/server/configuration).
+
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
 - [Quick Start (Local Testing with Minikube)](#quick-start-local-testing-with-minikube)
-- [Get Repo Info](#get-repo-info)
+- [Installation](#installation)
+  - [From Helm Repository](#from-helm-repository)
+  - [From OCI Registry](#from-oci-registry)
 - [Install Chart](#install-chart)
 - [Uninstall Chart](#uninstall-chart)
 - [Upgrading Chart](#upgrading-chart)
@@ -21,7 +25,7 @@ This chart bootstraps a [Centrifugo](https://centrifugal.dev) deployment on a [K
 - [Secret Management](#secret-management)
 - [Using with HashiCorp Vault](#using-with-hashicorp-vault)
 - [Scale with Redis Engine](#scale-with-redis-engine)
-- [With Nats Broker](#with-nats-broker)
+- [With NATS Broker](#with-nats-broker)
 - [Using initContainers](#using-initcontainers)
 - [Parameters](#parameters)
 - [Upgrading](#upgrading)
@@ -104,7 +108,9 @@ helm uninstall centrifugo
 minikube stop
 ```
 
-## Get Repo Info
+## Installation
+
+### From Helm Repository
 
 ```console
 helm repo add centrifugal https://centrifugal.github.io/helm-charts
@@ -112,6 +118,14 @@ helm repo update
 ```
 
 _See [helm repo](https://helm.sh/docs/helm/helm_repo/) for command documentation._
+
+### From OCI Registry
+
+The chart is also available from GitHub Container Registry:
+
+```console
+helm install centrifugo oci://ghcr.io/centrifugal/helm-charts/centrifugo
+```
 
 ## Install Chart
 
@@ -401,7 +415,7 @@ config:
   channel:
     namespaces:
       - name: "chat"
-      - presence: true
+        presence: true
   admin:
     enabled: false
 ```
@@ -562,7 +576,7 @@ envSecret:
 
 ## Scale with Redis Engine
 
-Run Redis (here we are using Redis chart from bitnami, but you can use any other Redis deployment):
+First, deploy Redis. This example uses the Bitnami Redis chart:
 
 ```console
 helm repo add bitnami https://charts.bitnami.com/bitnami
@@ -627,23 +641,23 @@ helm install centrifugo centrifugal/centrifugo \
 helm install redis bitnami/redis-cluster --set usePassword=false
 ```
 
-Then point Centrifugo to Redis Cluster:
+Then point Centrifugo to Redis Cluster (Centrifugo detects cluster mode automatically):
 
 ```console
 helm install centrifugo centrifugal/centrifugo \
   --set config.engine.type=redis \
-  --set config.engine.redis.address=redis+cluster://redis-redis-cluster-0:6379 \
+  --set config.engine.redis.address=redis://redis-redis-cluster-0:6379 \
   --set replicaCount=3
 ```
 
-## With Nats Broker
+## With NATS Broker
 
 ```console
 helm repo add nats https://nats-io.github.io/k8s/helm/charts/
 helm install nats nats/nats --set cluster.enabled=true
 ```
 
-Then start Centrifugo pointing to Nats broker:
+Then start Centrifugo pointing to NATS broker:
 
 ```console
 helm install centrifugo centrifugal/centrifugo \
@@ -725,6 +739,30 @@ initContainers:
 | `env` | Additional environment variables (non-sensitive) | `{}` |
 | `envSecret` | Secret environment variables (reference external secrets) | `[]` |
 
+### Deployment Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `replicaCount` | Number of Centrifugo replicas | `1` |
+| `revisionHistoryLimit` | Number of old ReplicaSets to retain | `10` |
+| `resources` | CPU/Memory resource requests/limits | `{}` |
+| `nodeSelector` | Node labels for pod assignment | `{}` |
+| `tolerations` | Tolerations for pod assignment | `[]` |
+| `affinity` | Affinity rules for pod assignment | `{}` |
+| `topologySpreadConstraints` | Topology spread constraints | `[]` |
+| `podDisruptionBudget.enabled` | Enable PodDisruptionBudget | `false` |
+| `podDisruptionBudget.minAvailable` | Minimum available pods | `nil` |
+| `podDisruptionBudget.maxUnavailable` | Maximum unavailable pods | `nil` |
+
+### Security Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `podSecurityContext` | Pod security context | `runAsNonRoot: true` |
+| `securityContext` | Container security context | See values.yaml |
+| `serviceAccount.create` | Create a ServiceAccount | `true` |
+| `serviceAccount.name` | ServiceAccount name | `""` |
+
 ### Service Parameters
 
 | Parameter | Description | Default |
@@ -739,7 +777,6 @@ initContainers:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `metrics.enabled` | Enable metrics | `false` |
 | `metrics.serviceMonitor.enabled` | Create ServiceMonitor for Prometheus Operator | `false` |
 | `metrics.serviceMonitor.interval` | Scrape interval | `30s` |
 
