@@ -147,7 +147,7 @@ _See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documen
 
 Centrifugo exposes 4 ports, each serving different purposes:
 
-```
+```text
                                     ┌─────────────────────────────────────┐
                                     │           Centrifugo Pod            │
                                     │                                     │
@@ -295,7 +295,7 @@ This example assumes Centrifugo is already running as shown in the [Quick Start]
 minikube addons enable ingress
 ```
 
-##### 2. Update Centrifugo with Ingress enabled
+##### 2. Update Centrifugo with NGINX Ingress
 
 ```bash
 helm upgrade centrifugo centrifugal/centrifugo \
@@ -311,7 +311,7 @@ helm upgrade centrifugo centrifugal/centrifugo \
   --set ingress.annotations."nginx\.ingress\.kubernetes\.io/proxy-send-timeout"=3600
 ```
 
-##### 3. Add hostname to /etc/hosts
+##### 3. Add local hostname
 
 Get the Minikube IP and add it to your hosts file:
 
@@ -319,7 +319,7 @@ Get the Minikube IP and add it to your hosts file:
 echo "$(minikube ip) centrifugo.local" | sudo tee -a /etc/hosts
 ```
 
-##### 4. Test the connection
+##### 4. Test NGINX Ingress connection
 
 ```bash
 # Test WebSocket endpoint through Ingress
@@ -337,22 +337,15 @@ You should see a `101 Switching Protocols` response, confirming WebSocket works 
 
 This example assumes Centrifugo is already running as shown in the [Quick Start](#quick-start-local-testing-with-minikube) section.
 
-##### 1. Enable Ingress addon in Minikube
+##### 1. Install HAProxy Ingress Controller
 
 ```bash
-minikube addons enable ingress
-```
-
-Note: Minikube uses NGINX by default. To use HAProxy instead:
-
-```bash
-minikube addons disable ingress
 helm repo add haproxytech https://haproxytech.github.io/helm-charts
 helm install haproxy-ingress haproxytech/kubernetes-ingress \
   --set controller.service.type=NodePort
 ```
 
-##### 2. Update Centrifugo with Ingress enabled
+##### 2. Update Centrifugo with HAProxy Ingress
 
 ```bash
 helm upgrade centrifugo centrifugal/centrifugo \
@@ -367,7 +360,7 @@ helm upgrade centrifugo centrifugal/centrifugo \
   --set ingress.annotations."haproxy\.org/timeout-tunnel"=3600s
 ```
 
-##### 3. Add hostname to /etc/hosts
+##### 3. Configure local hostname
 
 Get the Minikube IP and add it to your hosts file:
 
@@ -375,14 +368,14 @@ Get the Minikube IP and add it to your hosts file:
 echo "$(minikube ip) centrifugo.local" | sudo tee -a /etc/hosts
 ```
 
-##### 4. Get the Ingress controller NodePort
+##### 4. Get the HAProxy NodePort
 
 ```bash
 export INGRESS_PORT=$(kubectl get svc haproxy-ingress-kubernetes-ingress -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}')
 echo "Ingress available at: http://centrifugo.local:$INGRESS_PORT"
 ```
 
-##### 5. Test the connection
+##### 5. Test HAProxy Ingress connection
 
 ```bash
 # Test WebSocket endpoint through Ingress
