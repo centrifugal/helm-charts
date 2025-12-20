@@ -41,6 +41,8 @@ helm.sh/chart: {{ include "centrifugo.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/part-of: centrifugo
+app.kubernetes.io/component: server
 {{- end }}
 
 {{/*

@@ -430,9 +430,20 @@ Version 13 introduces a simplified, modern approach to secret management:
 **Added:**
 - Consistent `clusterIP` support for all services (`service`, `internalService`, `grpcService`, `uniGrpcService`)
 - ServiceMonitor now includes `path: /metrics` and respects `internalService.probeScheme` for HTTPS
+- `revisionHistoryLimit` parameter for Deployment cleanup
+- `podDisruptionBudget.maxUnavailable` option (alternative to `minAvailable`)
+- Default security contexts (`runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`, drop all capabilities)
+- Common labels (`app.kubernetes.io/part-of`, `app.kubernetes.io/component`)
+- Improved post-install notes with internal endpoints and verification commands
 
 **Fixed:**
 - Removed unused `metrics.enabled` option (metrics endpoint is always enabled on internal port, use `metrics.serviceMonitor.enabled` to create ServiceMonitor)
+- PodDisruptionBudget now uses namespace helper (supports `namespaceOverride`)
+- Consistent use of `nindent` across all templates
+- Consistent API version detection using `APIVersions.Has` pattern
+- Removed deprecated `engine: gotpl` from Chart.yaml
+- Chart.yaml upgraded to `apiVersion: v2` with `type`, `keywords`, and `sources`
+- `topologySpreadConstraints` and `initContainers` now use proper list type (`[]`) instead of string
 
 **Migration Guide:**
 

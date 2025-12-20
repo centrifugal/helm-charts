@@ -1,20 +1,66 @@
-1. Get the application URL by running these commands:
+Centrifugo has been installed successfully!
+
+{{- $fullName := include "centrifugo.fullname" . }}
+{{- $namespace := .Release.Namespace }}
+
+=== ACCESSING CENTRIFUGO ===
+
 {{- if .Values.ingress.enabled }}
+
+External access via Ingress:
 {{- range $host := .Values.ingress.hosts }}
   {{- range .paths }}
   http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ . }}
   {{- end }}
 {{- end }}
+
 {{- else if contains "NodePort" .Values.service.type }}
-  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "centrifugo.fullname" . }})
-  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
-  echo http://$NODE_IP:$NODE_PORT
+
+External access via NodePort:
+
+  export NODE_PORT=$(kubectl get --namespace {{ $namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ $fullName }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ $namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "Centrifugo URL: http://$NODE_IP:$NODE_PORT"
+
 {{- else if contains "LoadBalancer" .Values.service.type }}
-     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "centrifugo.fullname" . }}'
-  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "centrifugo.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-  echo http://$SERVICE_IP:{{ .Values.service.port }}
+
+External access via LoadBalancer:
+
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  Watch the status with:
+    kubectl get --namespace {{ $namespace }} svc -w {{ $fullName }}
+
+  export SERVICE_IP=$(kubectl get svc --namespace {{ $namespace }} {{ $fullName }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "Centrifugo URL: http://$SERVICE_IP:{{ .Values.service.port }}"
+
 {{- else if contains "ClusterIP" .Values.service.type }}
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "centrifugo.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8000:8000
+
+External port (client connections):
+
+  kubectl --namespace {{ $namespace }} port-forward svc/{{ $fullName }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+  Then access: http://localhost:{{ .Values.service.port }}
+
 {{- end }}
+
+=== INTERNAL ENDPOINTS ===
+
+Internal port provides: API, Prometheus metrics, admin UI, health checks.
+
+  kubectl --namespace {{ $namespace }} port-forward svc/{{ $fullName }} {{ .Values.internalService.port }}:{{ .Values.internalService.port }}
+
+  - Admin UI:    http://localhost:{{ .Values.internalService.port }}/admin
+  - Metrics:     http://localhost:{{ .Values.internalService.port }}/metrics
+  - Health:      http://localhost:{{ .Values.internalService.port }}/health
+
+=== VERIFY DEPLOYMENT ===
+
+Check pod status:
+  kubectl get pods --namespace {{ $namespace }} -l "app.kubernetes.io/name={{ include "centrifugo.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+View logs:
+  kubectl logs --namespace {{ $namespace }} -l "app.kubernetes.io/name={{ include "centrifugo.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+=== DOCUMENTATION ===
+
+For more information, visit: https://centrifugal.dev/docs

@@ -9,6 +9,9 @@
 
 replicaCount: 1
 
+# Number of old ReplicaSets to retain for rollback
+revisionHistoryLimit: 10
+
 image:
   registry: docker.io
   repository: centrifugo/centrifugo
@@ -178,6 +181,13 @@ ingressInternal:
     #     - centrifugo.local
 
 resources: {}
+  # We recommend setting resources for production deployments.
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # limits:
+  #   cpu: 500m
+  #   memory: 256Mi
 
 serviceAccount:
   # Specifies whether a service account should be created.
@@ -216,23 +226,31 @@ autoscalingTemplate: []
 
 podDisruptionBudget:
   enabled: false
+  # Minimum number/percentage of pods that must remain available during disruption.
+  # Cannot be used together with maxUnavailable.
   minAvailable: 1
+  # Maximum number/percentage of pods that can be unavailable during disruption.
+  # Cannot be used together with minAvailable.
+  # maxUnavailable: 1
 
 terminationGracePeriodSeconds: 30
 
 podAnnotations: {}
 podLabels: {}
 
-podSecurityContext: {}
-  # fsGroup: 2000
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
 
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
   #
   # You can also tune sysctl, ex.:
   # sysctls:
@@ -363,13 +381,19 @@ volumeMounts: []
   #   readOnly: true
 
 
-# TopologySpreadConstrains, e.g. for spreading pods across nodes
-# see https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
-topologySpreadConstraints: ""
+# TopologySpreadConstraints for spreading pods across nodes.
+# See https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+topologySpreadConstraints: []
+  # - maxSkew: 1
+  #   topologyKey: kubernetes.io/hostname
+  #   whenUnsatisfiable: DoNotSchedule
+  #   labelSelector:
+  #     matchLabels:
+  #       app.kubernetes.io/name: centrifugo
 
-# Init Containers, e.g. for waiting for other resources like redis  (evaluated as template)
-# see https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
-initContainers: ""
+# Init Containers, e.g. for waiting for other resources like redis (evaluated as template).
+# See https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+initContainers: []
 
 # ============================================
 # HOST CHECK JOB
