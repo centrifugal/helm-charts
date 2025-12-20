@@ -1,9 +1,9 @@
-name: Lint and Test Charts
+name: Helm Chart CI
 
 on: [push, pull_request]
 
 jobs:
-  lint-test:
+  lint-and-install:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

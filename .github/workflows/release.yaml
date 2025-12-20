@@ -1,4 +1,4 @@
-name: Tag and Release Charts
+name: Release Charts
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  release:
+  release-to-github-pages-and-ghcr:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
