@@ -52,7 +52,7 @@ service:
   nodePort: ""
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   ## Set to "None" for headless service.
-  # clusterIP: ""
+  clusterIP: ""
   ## Provide any additional annotations which may be required
   ##
   annotations: {}
@@ -77,11 +77,10 @@ internalService:
   port: 9000
   type: ClusterIP
   probeScheme: HTTP
-  nodePort: ""
   # Static NodePort, if set.
-  # nodePort: 30101
+  nodePort: ""
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  # clusterIP: ""
+  clusterIP: ""
   annotations: {}
     # prometheus.io/scrape: "true"
     # prometheus.io/path: "/metrics"
@@ -96,11 +95,10 @@ internalService:
 grpcService:
   port: 10000
   type: ClusterIP
-  nodePort: ""
   # Static NodePort, if set.
-  # nodePort: 30102
+  nodePort: ""
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  # clusterIP: ""
+  clusterIP: ""
   annotations: {}
   ## Specify custom appProtocol for a service port.
   labels: {}
@@ -112,11 +110,10 @@ grpcService:
 uniGrpcService:
   port: 11000
   type: ClusterIP
-  nodePort: ""
   # Static NodePort, if set.
-  # nodePort: 30103
+  nodePort: ""
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  # clusterIP: ""
+  clusterIP: ""
   annotations: {}
   ## Specify custom appProtocol for a service port.
   labels: {}
@@ -125,7 +122,7 @@ uniGrpcService:
 ingress:
   enabled: false
 
-  # Optionally set the ingressClassName. k8s >= 1.18
+  # Optionally set the ingressClassName.
   ingressClassName: ""
 
   # pathType override - see: https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
@@ -168,7 +165,7 @@ ingressInternal:
   # pathType override - see: https://kubernetes.io/docs/concepts/services-networking/ingress/#path-types
   pathType: Prefix
   labels: {}
-    # extrenal-dns: true
+    # external-dns: true
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
