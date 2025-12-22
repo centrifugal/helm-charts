@@ -98,7 +98,6 @@ spec:
             - "{{ .Values.service.port }}"
             - --http_server.internal_port
             - "{{ .Values.internalService.port }}"
-            - --grpc_api.enabled
             - --grpc_api.port
             - "{{ .Values.grpcService.port }}"
             - --uni_grpc.port

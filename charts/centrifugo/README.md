@@ -66,7 +66,7 @@ helm install centrifugo charts/centrifugo \
   --set config.admin.secret=secret
 ```
 
-This is for local testing only. Do not use this approach to set secrets in production.
+Note! Do not use this approach to set secrets in production – use [secrets](#secret-management) instead.
 
 ### 2. Wait for the pod to be ready
 
@@ -167,7 +167,7 @@ _See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documen
 
 ### Architecture
 
-Centrifugo exposes 4 ports, each serving different purposes:
+Centrifugo exposes 3 main ports, each serving different purposes:
 
 ```text
                                     ┌─────────────────────────────────────┐
@@ -175,7 +175,7 @@ Centrifugo exposes 4 ports, each serving different purposes:
                                     │                                     │
 ┌─────────────┐    Ingress          │  ┌───────────────────────────────┐  │
 │   Clients   │───────────────────────▶│  External (8000)              │  │
-│  (browser)  │    WebSocket/       │  │  - Client connections         │  │
+│ Connections │    WebSocket/       │  │  - Client conns, emulation    │  │
 └─────────────┘    SSE/HTTP         │  │  - WebSocket, SSE, HTTP       │  │
                                     │  └───────────────────────────────┘  │
                                     │                                     │
@@ -188,16 +188,13 @@ Centrifugo exposes 4 ports, each serving different purposes:
                                     │                                     │
 ┌─────────────┐    Internal only    │  ┌───────────────────────────────┐  │
 │  Backend    │───────────────────────▶│  GRPC API (10000)             │  │
-│  Services   │    (ClusterIP)      │  │  - Bidirectional GRPC API     │  │
-└─────────────┘                     │  └───────────────────────────────┘  │
-                                    │                                     │
-┌─────────────┐    Ingress          │  ┌───────────────────────────────┐  │
-│   Clients   │───────────────────────▶│  Uni GRPC (11000)             │  │
-│  (mobile)   │    gRPC stream      │  │  - Unidirectional GRPC stream │  │
+│  Services   │    (ClusterIP)      │  │  - Server GRPC API            │  │
 └─────────────┘                     │  └───────────────────────────────┘  │
                                     │                                     │
                                     └─────────────────────────────────────┘
 ```
+
+There is also a unidirectional GRPC transport port (11000). It's not commonly used by Centrifugo users, but the chart creates resources for it also.
 
 ### Service Design
 
@@ -228,13 +225,13 @@ This chart by default starts Centrifugo with **Memory engine**. Running multiple
 To scale horizontally, use **Redis engine** or **NATS broker**:
 
 ```bash
-# With Redis
+# With Redis (supports all Centrifugo features)
 helm install centrifugo centrifugal/centrifugo \
   --set config.engine.type=redis \
   --set config.engine.redis.address=redis://redis:6379 \
   --set replicaCount=3
 
-# With NATS (at-most-once delivery only)
+# With NATS (at-most-once delivery only, no history/recovery/presence support).
 helm install centrifugo centrifugal/centrifugo \
   --set config.broker.enabled=true \
   --set config.broker.type=nats \
@@ -307,8 +304,6 @@ ingress:
         - /connection
         - /emulation
 ```
-
-Ensure your Ingress Controller deployment has appropriate resource limits and system settings. See [Centrifugo infrastructure tuning guide](https://centrifugal.dev/docs/server/infra_tuning) for details.
 
 #### Full NGINX Ingress Example (Minikube)
 
@@ -467,7 +462,7 @@ kind: BackendConfig
 metadata:
   name: centrifugo-backend-config
 spec:
-  timeoutSec: 3600
+  timeoutSec: 86400
   connectionDraining:
     drainingTimeoutSec: 30
 ```
@@ -530,6 +525,8 @@ Key factors affecting resource needs:
 - **Message throughput** — affects CPU
 - **Channel subscriptions per connection** — additional memory overhead
 - **Message size and history** — if using cache/history features
+- **Presence information** - if using online presence feature
+- Etc.
 
 Monitor actual usage with Prometheus metrics (`centrifugo_node_num_clients`, memory/CPU metrics) and adjust accordingly. See [Centrifugo observability documentation](https://centrifugal.dev/docs/server/observability) for available metrics.
 
@@ -587,12 +584,7 @@ resources:
 
 When a pod terminates, Kubernetes removes it from Service endpoints while simultaneously sending SIGTERM to the container. These operations happen concurrently, creating a race condition where traffic may still be routed to a terminating pod.
 
-The chart includes a `preStop` hook that sleeps before SIGTERM is sent, allowing time for endpoint changes to propagate:
-
-```yaml
-# Default: 5 seconds (set to 0 to disable)
-preStopSleepSeconds: 5
-```
+The chart by default uses a `preStop` hook that sleeps before SIGTERM is sent, allowing time for endpoint changes to propagate:
 
 The shutdown sequence becomes:
 1. Pod marked for termination
@@ -743,35 +735,15 @@ See [Centrifugo configuration documentation](https://centrifugal.dev/docs/server
 
 ## Using with HashiCorp Vault
 
-### Vault Agent Injector
-
-If you have the [Vault Agent Injector](https://developer.hashicorp.com/vault/docs/platform/k8s/injector) installed, you can inject secrets directly into pods. The template creates environment variable definitions that are sourced before Centrifugo starts:
-
-```yaml
-podAnnotations:
-  vault.hashicorp.com/agent-inject: "true"
-  vault.hashicorp.com/role: "centrifugo"
-  vault.hashicorp.com/agent-inject-secret-env: "secret/data/centrifugo"
-  vault.hashicorp.com/agent-inject-template-env: |
-    {{- with secret "secret/data/centrifugo" -}}
-    export CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY="{{ .Data.data.tokenHmacSecretKey }}"
-    export CENTRIFUGO_ADMIN_PASSWORD="{{ .Data.data.adminPassword }}"
-    export CENTRIFUGO_ADMIN_SECRET="{{ .Data.data.adminSecret }}"
-    export CENTRIFUGO_HTTP_API_KEY="{{ .Data.data.apiKey }}"
-    {{- end }}
-  vault.hashicorp.com/agent-inject-command-env: "source /vault/secrets/env && exec centrifugo"
-
-# Override the default command to source the secrets
-command:
-  - /bin/sh
-  - -c
-args:
-  - source /vault/secrets/env && centrifugo --health.enabled --prometheus.enabled --http_server.port=8000 --http_server.internal_port=9000 --grpc_api.enabled --grpc_api.port=10000 --uni_grpc.port=11000
-```
-
 ### External Secrets Operator
 
-If you use [External Secrets Operator](https://external-secrets.io/), you have two approaches: individual secret references or bulk import with `envFrom`.
+If you use [External Secrets Operator](https://external-secrets.io/), you can sync secrets from Vault into Kubernetes Secrets and consume them as environment variables. This approach does **not** require overriding the container command.
+
+There are two supported patterns: **individual secret references** and **bulk import with `envFrom`**.
+
+> **Important:**
+> When using Vault KV v2, always reference the **logical path** (for example `secret/centrifugo`).
+> Do **not** include `/data` — External Secrets Operator handles KV v2 internally.
 
 #### Option 1: Individual Secret References
 
@@ -793,19 +765,19 @@ spec:
   data:
     - secretKey: client.token.hmac_secret_key
       remoteRef:
-        key: secret/data/centrifugo
+        key: secret/centrifugo
         property: tokenHmacSecretKey
     - secretKey: admin.password
       remoteRef:
-        key: secret/data/centrifugo
+        key: secret/centrifugo
         property: adminPassword
     - secretKey: admin.secret
       remoteRef:
-        key: secret/data/centrifugo
+        key: secret/centrifugo
         property: adminSecret
     - secretKey: http_api.key
       remoteRef:
-        key: secret/data/centrifugo
+        key: secret/centrifugo
         property: apiKey
 ```
 
@@ -844,6 +816,8 @@ vault kv put secret/centrifugo \
   CENTRIFUGO_HTTP_API_KEY="your-api-key"
 ```
 
+This requires Vault keys to already be valid environment variable names. All Vault keys must match `[A-Z_][A-Z0-9_]*`.
+
 Then create an `ExternalSecret` that extracts all keys:
 
 ```yaml
@@ -861,7 +835,7 @@ spec:
     creationPolicy: Owner
   dataFrom:
     - extract:
-        key: secret/data/centrifugo
+        key: secret/centrifugo
 ```
 
 Then use `envFrom` in your Helm values to import all secrets:
@@ -1122,6 +1096,7 @@ Version 13 introduces a simplified, modern approach to secret management:
 **Changed:**
 - `envSecret` - Now the primary way to reference secrets (structure simplified)
 - Security contexts - Removed duplication of `runAsUser`/`runAsNonRoot` between pod and container contexts
+- **GRPC API is now opt-in** - The chart no longer passes `--grpc_api.enabled` flag by default. Users must explicitly enable GRPC API in their configuration if needed
 
 **Added:**
 - `envFrom` parameter to populate environment variables from ConfigMaps or Secrets (useful for bulk importing secrets from External Secrets Operator, Sealed Secrets, etc.)
@@ -1156,6 +1131,18 @@ Version 13 introduces a simplified, modern approach to secret management:
 - `topologySpreadConstraints` and `initContainers` now use proper list type (`[]`) instead of string
 
 **Migration Guide:**
+
+**If you use GRPC API:** You must now explicitly enable it in your configuration:
+
+```yaml
+config:
+  grpc_api:
+    enabled: true
+```
+
+Without this configuration, GRPC API will not be available even though the port is still exposed on the service.
+
+**For secrets management:**
 
 1. Create your own Kubernetes secret:
 
