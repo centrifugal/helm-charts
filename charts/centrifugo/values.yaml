@@ -348,6 +348,15 @@ envSecret: []
   #     name: centrifugo-secrets
   #     key: license
 
+# Populate environment variables from ConfigMaps or Secrets.
+# Use for bulk importing environment variables from external sources.
+# The chart does NOT create these ConfigMaps/Secrets - you manage them externally.
+envFrom: []
+  # - configMapRef:
+  #     name: centrifugo-config
+  # - secretRef:
+  #     name: centrifugo-secrets
+
 # ============================================
 # CENTRIFUGO CONFIGURATION
 # ============================================

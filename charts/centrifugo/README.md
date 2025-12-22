@@ -771,7 +771,11 @@ args:
 
 ### External Secrets Operator
 
-If you use [External Secrets Operator](https://external-secrets.io/), first create an `ExternalSecret`:
+If you use [External Secrets Operator](https://external-secrets.io/), you have two approaches: individual secret references or bulk import with `envFrom`.
+
+#### Option 1: Individual Secret References
+
+Create an `ExternalSecret` that maps Vault keys to Kubernetes secret keys:
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -805,7 +809,7 @@ spec:
         property: apiKey
 ```
 
-Then reference the created secret in your values:
+Then reference each secret individually in your values:
 
 ```yaml
 envSecret:
@@ -826,6 +830,49 @@ envSecret:
       name: centrifugo-secrets
       key: http_api.key
 ```
+
+#### Option 2: Bulk Import with `envFrom`
+
+For simpler configuration, use `envFrom` to import all environment variables from the secret at once. Store secrets in Vault with the proper Centrifugo environment variable names:
+
+In Vault, structure your secrets like this:
+```bash
+vault kv put secret/centrifugo \
+  CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY="your-secret" \
+  CENTRIFUGO_ADMIN_PASSWORD="your-password" \
+  CENTRIFUGO_ADMIN_SECRET="your-secret" \
+  CENTRIFUGO_HTTP_API_KEY="your-api-key"
+```
+
+Then create an `ExternalSecret` that extracts all keys:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: centrifugo-secrets
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: centrifugo-secrets
+    creationPolicy: Owner
+  dataFrom:
+    - extract:
+        key: secret/data/centrifugo
+```
+
+Then use `envFrom` in your Helm values to import all secrets:
+
+```yaml
+envFrom:
+  - secretRef:
+      name: centrifugo-secrets
+```
+
+This approach is cleaner when you have many secrets - you don't need to list each one individually in your Helm values. The keys in the Kubernetes Secret will match the keys in Vault.
 
 ## Scale with Redis Engine
 
@@ -990,6 +1037,7 @@ initContainers:
 | `config` | Centrifugo configuration (becomes config.json) | See values.yaml |
 | `env` | Additional environment variables (non-sensitive) | `{}` |
 | `envSecret` | Secret environment variables (reference external secrets) | `[]` |
+| `envFrom` | Populate environment variables from ConfigMaps or Secrets | `[]` |
 
 ### Deployment Parameters
 
@@ -1049,6 +1097,7 @@ Version 13 introduces a simplified, modern approach to secret management:
 - `envSecret` - Now the primary way to reference secrets (structure simplified)
 
 **Added:**
+- `envFrom` parameter to populate environment variables from ConfigMaps or Secrets (useful for bulk importing secrets from External Secrets Operator, Sealed Secrets, etc.)
 - Consistent `clusterIP` support for all services (`service`, `internalService`, `grpcService`, `uniGrpcService`)
 - ServiceMonitor now includes `path: /metrics` and respects `internalService.probeScheme` for HTTPS
 - `revisionHistoryLimit` parameter for Deployment cleanup

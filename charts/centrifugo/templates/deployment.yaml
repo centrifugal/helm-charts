@@ -80,6 +80,11 @@ spec:
             - "{{ .Values.grpcService.port }}"
             - --uni_grpc.port
             - "{{ .Values.uniGrpcService.port }}"
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.env .Values.envSecret }}
           env:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
@@ -91,6 +96,7 @@ spec:
                 secretKeyRef:
                   {{- toYaml .secretKeyRef | nindent 18 }}
             {{- end }}
+          {{- end }}
           volumeMounts:
             - name: "{{ include "centrifugo.fullname" . }}-config"
               mountPath: "/centrifugo"
