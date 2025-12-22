@@ -235,10 +235,17 @@ podDisruptionBudget:
 
 terminationGracePeriodSeconds: 30
 
-# Seconds to sleep before sending SIGTERM to the container.
-# Helps avoid race condition where traffic is still routed to terminating pod.
-# Set to 0 to disable preStop hook.
-preStopSleepSeconds: 5
+# Container lifecycle hooks.
+# Default: preStop sleeps for 5 seconds to avoid endpoint propagation race condition.
+# Set to null to disable all lifecycle hooks: lifecycle: null
+lifecycle:
+  preStop:
+    exec:
+      command: ["/bin/sh", "-c", "sleep 5"]
+# Example with postStart:
+#  postStart:
+#    exec:
+#      command: ["/bin/sh", "-c", "echo Hello from the postStart handler"]
 
 podAnnotations: {}
 podLabels: {}
@@ -271,6 +278,100 @@ deploymentStrategy: {}
 extraContainers: []
 #  - name: my-sidecar
 #    image: nginx:latest
+
+# ============================================
+# POD-LEVEL CONFIGURATION
+# ============================================
+
+# Host aliases for the pod.
+# See https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
+hostAliases: []
+#  - ip: "127.0.0.1"
+#    hostnames:
+#      - "foo.local"
+#      - "bar.local"
+
+# Enable/disable service environment variables in the pod.
+# Setting to false can significantly speed up pod startup.
+# Centrifugo typically doesn't need service environment variables.
+# See https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/#accessing-the-service
+enableServiceLinks: true
+
+# Runtime class for the pod (e.g., gvisor, kata-containers).
+# See https://kubernetes.io/docs/concepts/containers/runtime-class/
+runtimeClassName: ""
+#  runtimeClassName: "gvisor"
+
+# Share process namespace between containers in the pod.
+# Useful for debugging/profiling with sidecars.
+# See https://kubernetes.io/docs/tasks/configure-pod-container/share-process-namespace/
+shareProcessNamespace: false
+
+# Custom scheduler name.
+# See https://kubernetes.io/docs/tasks/extend-kubernetes/configure-multiple-schedulers/
+schedulerName: ""
+#  schedulerName: "my-custom-scheduler"
+
+# Overhead represents the resource overhead associated with running a pod.
+# Used with VM-based runtimes like Kata Containers.
+# Note: Beta in Kubernetes 1.18-1.23, GA in 1.24+
+# See https://kubernetes.io/docs/concepts/scheduling-eviction/pod-overhead/
+overhead: {}
+#  cpu: "250m"
+#  memory: "128Mi"
+
+# ============================================
+# CONTAINER-LEVEL CONFIGURATION
+# ============================================
+
+# Termination message policy for the container.
+# Options: File (default), FallbackToLogsOnError
+# See https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/
+terminationMessagePolicy: ""
+#  terminationMessagePolicy: "FallbackToLogsOnError"
+
+# Liveness probe for the main Centrifugo container.
+# Default: httpGet probe on /health endpoint (port 9000).
+# You can override with full probe configuration:
+# - httpGet, exec, tcpSocket: Supported in all Kubernetes versions
+# - grpc: Requires Kubernetes 1.23+ (alpha), 1.24+ (beta), 1.27+ (GA)
+livenessProbe: {}
+#  httpGet:
+#    path: /health
+#    port: 9000
+#    scheme: HTTP
+#  initialDelaySeconds: 30
+#  periodSeconds: 10
+#  timeoutSeconds: 1
+#  successThreshold: 1
+#  failureThreshold: 3
+
+# Readiness probe for the main Centrifugo container.
+# Default: httpGet probe on /health endpoint (port 9000).
+# You can override with full probe configuration:
+# - httpGet, exec, tcpSocket: Supported in all Kubernetes versions
+# - grpc: Requires Kubernetes 1.23+ (alpha), 1.24+ (beta), 1.27+ (GA)
+readinessProbe: {}
+#  httpGet:
+#    path: /health
+#    port: 9000
+#    scheme: HTTP
+#  initialDelaySeconds: 3
+#  periodSeconds: 10
+#  timeoutSeconds: 1
+#  successThreshold: 1
+#  failureThreshold: 3
+
+# Startup probe for the main Centrifugo container.
+# Useful for slow-starting containers to avoid liveness probe killing the pod.
+# You can use httpGet, exec, tcpSocket (all versions), or grpc (requires Kubernetes 1.23+).
+# See https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+startupProbe: {}
+#  httpGet:
+#    path: /health
+#    port: 9000
+#  failureThreshold: 30
+#  periodSeconds: 10
 
 ## Prometheus metrics configuration.
 ## Note: Prometheus metrics endpoint (/metrics) is always enabled on the internal port.

@@ -1054,6 +1054,32 @@ initContainers:
 | `podDisruptionBudget.minAvailable` | Minimum available pods | `nil` |
 | `podDisruptionBudget.maxUnavailable` | Maximum unavailable pods | `nil` |
 
+### Pod-Level Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `hostAliases` | Custom host-to-IP mappings | `[]` |
+| `enableServiceLinks` | Enable service environment variables (disable for faster startup) | `true` |
+| `runtimeClassName` | Runtime class name (e.g., gvisor, kata-containers) | `""` |
+| `shareProcessNamespace` | Share process namespace between containers | `false` |
+| `schedulerName` | Custom scheduler name | `""` |
+| `overhead` | Resource overhead for VM-based runtimes | `{}` |
+
+### Container-Level Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `terminationMessagePolicy` | How to populate termination message (File, FallbackToLogsOnError) | `""` |
+| `lifecycle` | Container lifecycle hooks (preStop, postStart) | `{preStop: {exec: {command: ["/bin/sh", "-c", "sleep 5"]}}}` |
+
+### Health Probes Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `livenessProbe` | Liveness probe configuration (overrides default httpGet) | `{}` |
+| `readinessProbe` | Readiness probe configuration (overrides default httpGet) | `{}` |
+| `startupProbe` | Startup probe configuration | `{}` |
+
 ### Security Parameters
 
 | Parameter | Description | Default |
@@ -1098,6 +1124,20 @@ Version 13 introduces a simplified, modern approach to secret management:
 
 **Added:**
 - `envFrom` parameter to populate environment variables from ConfigMaps or Secrets (useful for bulk importing secrets from External Secrets Operator, Sealed Secrets, etc.)
+- Pod-level configuration:
+  - `enableServiceLinks` - Disable for faster pod startup (default: true)
+  - `runtimeClassName` - Support for gVisor, Kata Containers, etc.
+  - `shareProcessNamespace` - For debugging/profiling with sidecars
+  - `schedulerName` - Custom scheduler support
+  - `overhead` - Resource overhead for VM-based runtimes
+  - `hostAliases` - Custom host-to-IP mappings
+- Container-level configuration:
+  - `terminationMessagePolicy` - Better error visibility
+  - `lifecycle` - Full lifecycle hooks support (preStop, postStart)
+- Health probes:
+  - Fully configurable `livenessProbe`, `readinessProbe`, `startupProbe`
+  - Support for all probe types (httpGet, exec, grpc, tcpSocket)
+  - Maintains backward compatibility with default httpGet probes
 - Consistent `clusterIP` support for all services (`service`, `internalService`, `grpcService`, `uniGrpcService`)
 - ServiceMonitor now includes `path: /metrics` and respects `internalService.probeScheme` for HTTPS
 - `revisionHistoryLimit` parameter for Deployment cleanup
@@ -1105,7 +1145,6 @@ Version 13 introduces a simplified, modern approach to secret management:
 - Default security contexts (`runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`, drop all capabilities)
 - Common labels (`app.kubernetes.io/part-of`, `app.kubernetes.io/component`)
 - Improved post-install notes with internal endpoints and verification commands
-- `preStopSleepSeconds` (default: 5) — preStop hook to avoid endpoint propagation race condition during pod termination
 
 **Fixed:**
 - Removed unused `metrics.enabled` option (metrics endpoint is always enabled on internal port, use `metrics.serviceMonitor.enabled` to create ServiceMonitor)
