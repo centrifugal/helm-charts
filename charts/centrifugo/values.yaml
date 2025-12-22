@@ -365,13 +365,13 @@ terminationMessagePolicy: ""
 #  terminationMessagePolicy: "FallbackToLogsOnError"
 
 # Liveness probe for the main Centrifugo container.
-# Default: httpGet probe on /health endpoint (port 9000).
+# Default: httpGet probe on /health endpoint using servers.internal.port and servers.internal.scheme.
 # You can override with full probe configuration.
 livenessProbe: {}
 #  httpGet:
 #    path: /health
-#    port: 9000
-#    scheme: HTTP
+#    port: 9000  # Should match servers.internal.port
+#    scheme: HTTP  # Should match servers.internal.scheme (HTTP or HTTPS)
 #  initialDelaySeconds: 30
 #  periodSeconds: 10
 #  timeoutSeconds: 1
@@ -379,13 +379,13 @@ livenessProbe: {}
 #  failureThreshold: 3
 
 # Readiness probe for the main Centrifugo container.
-# Default: httpGet probe on /health endpoint (port 9000).
+# Default: httpGet probe on /health endpoint using servers.internal.port and servers.internal.scheme.
 # You can override with full probe configuration.
 readinessProbe: {}
 #  httpGet:
 #    path: /health
-#    port: 9000
-#    scheme: HTTP
+#    port: 9000  # Should match servers.internal.port
+#    scheme: HTTP  # Should match servers.internal.scheme (HTTP or HTTPS)
 #  initialDelaySeconds: 3
 #  periodSeconds: 10
 #  timeoutSeconds: 1
