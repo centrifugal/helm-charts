@@ -100,15 +100,15 @@ imagePullSecrets:
 {{- range .Values.global.imagePullSecrets }}
   - name: {{ . }}
 {{- end }}
-{{- else if .Values.image.pullSecrets}}
+{{- else if .Values.imagePullSecrets}}
 imagePullSecrets:
-{{- range .Values.image.pullSecrets }}
+{{- range .Values.imagePullSecrets }}
   - name: {{ . }}
 {{- end }}
 {{- end -}}
-{{- else if .Values.image.pullSecrets }}
+{{- else if .Values.imagePullSecrets }}
 imagePullSecrets:
-{{- range .Values.image.pullSecrets }}
+{{- range .Values.imagePullSecrets }}
   - name: {{ . }}
 {{- end }}
 {{- end -}}

@@ -43,5 +43,5 @@ spec:
       {{- include "centrifugo.selectorLabels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
-      - {{ .Release.Namespace }}
+      - {{ include "centrifugo.namespace" . }}
 {{- end -}}
