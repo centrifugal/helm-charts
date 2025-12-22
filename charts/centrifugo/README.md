@@ -198,22 +198,73 @@ There is also a unidirectional GRPC transport port (11000). It's not commonly us
 
 ### Service Design
 
-By default, **all ports are exposed via a single Kubernetes Service**. This is simple and works for most cases.
+Centrifugo exposes multiple ports for different purposes:
 
-For advanced deployments, you can split ports into **separate Services** using:
+- **External** (default 8000): Client connections (WebSocket, HTTP streaming, SSE)
+- **Internal** (default 9000): Health checks, Prometheus metrics, admin UI
+- **GRPC** (default 10000): Server API (publishing, presence, history)
+- **Uni-GRPC** (default 11000): Unidirectional GRPC stream
+
+#### Server Ports vs Service Ports
+
+The chart **decouples Centrifugo server ports from Kubernetes service ports**:
+
+```yaml
+# Centrifugo servers: What ports Centrifugo listens on inside the container
+servers:
+  external:
+    port: 8000
+  internal:
+    port: 9000
+    scheme: HTTP  # or HTTPS (for probes and metrics)
+  grpc:
+    port: 10000
+  uniGrpc:
+    port: 11000
+
+# Kubernetes service ports: External-facing ports that forward to server ports
+service:
+  port: 443  # Can be different from server port
+```
+
+This separation allows you to:
+- Expose services on standard ports (443, 80) while Centrifugo runs on different ports internally
+- Use the same service port across different Service objects (when using separate services)
+- Change external-facing ports without modifying Centrifugo configuration
+
+#### Single Service (Default)
+
+By default, **all ports are exposed via a single Kubernetes Service**. This is simple and works for most cases:
+
+```yaml
+# All ports on one service
+Service: centrifugo
+  - port 8000 → container:8000 (external)
+  - port 9000 → container:9000 (internal)
+  - port 10000 → container:10000 (grpc)
+  - port 11000 → container:11000 (uni-grpc)
+```
+
+#### Separate Services (Advanced)
+
+For advanced deployments, you can split ports into **separate Services**:
 
 ```yaml
 service:
+  port: 443  # Main service on 443
   useSeparateInternalService: true   # Creates centrifugo-internal service
   useSeparateGrpcService: true       # Creates centrifugo-grpc service
   useSeparateUniGrpcService: true    # Creates centrifugo-uni-grpc service
+
+internalService:
+  port: 443  # Internal service also on 443 (different Service object)
 ```
 
 **Why separate services?**
 
 | Use Case | Solution |
 |----------|----------|
-| Use same port (e.g., 443) for all services with different hostnames | Separate services + separate Ingresses |
+| Use same port (e.g., 443) for all services | Separate services + configure each to use port 443 |
 | Different load balancing for GRPC vs HTTP | Separate services with different annotations |
 | Restrict internal API access with NetworkPolicy | Separate internal service to target with policy |
 | Different service types (LoadBalancer for external, ClusterIP for internal) | Separate services with different types |
@@ -1092,13 +1143,16 @@ Version 13 introduces a simplified, modern approach to secret management:
 - `existingSecret` - Reference to chart-managed secret
 - Chart no longer creates a Secret resource
 - `autoscalingTemplate` - Renamed to `autoscaling.customMetrics` for clarity
+- `internalService.probeScheme` - Moved to `servers.internal.scheme` for better organization
 
 **Changed:**
 - `envSecret` - Now the primary way to reference secrets (structure simplified)
 - Security contexts - Removed duplication of `runAsUser`/`runAsNonRoot` between pod and container contexts
 - **GRPC API is now opt-in** - The chart no longer passes `--grpc_api.enabled` flag by default. Users must explicitly enable GRPC API in their configuration if needed
+- **Port configuration decoupled** - Centrifugo server ports are now separate from Kubernetes service ports. Service ports (`service.port`, `internalService.port`, etc.) can now be configured independently from server ports (defined in new `servers` section). This allows using the same service port number across different services (e.g., all services can use port 443) since they map to different server ports. See [Service Design](#service-design) for details.
 
 **Added:**
+- `servers` section - Explicit configuration for Centrifugo server endpoints (external, internal, grpc, uniGrpc) with extensible properties per server
 - `envFrom` parameter to populate environment variables from ConfigMaps or Secrets (useful for bulk importing secrets from External Secrets Operator, Sealed Secrets, etc.)
 - Pod-level configuration:
   - `runtimeClassName` - Support for gVisor, Kata Containers, etc.
@@ -1201,6 +1255,73 @@ envSecret:
       name: my-secret
       key: tokenHmacSecretKey  # use whatever key names exist in your secret
   # ... add other keys as needed
+```
+
+**For port configuration:**
+
+If you were using default ports, no action is required. The defaults remain the same (8000, 9000, 10000, 11000).
+
+If you customized ports in v12, the configuration structure has changed:
+
+**Before (v12):**
+```yaml
+service:
+  port: 8080  # This set both service AND container port
+internalService:
+  port: 9090  # This set both service AND container port
+```
+
+**After (v13):**
+```yaml
+# Centrifugo server ports (what Centrifugo listens on inside the container)
+servers:
+  external:
+    port: 8080
+  internal:
+    port: 9090
+    scheme: HTTP
+  grpc:
+    port: 10000
+  uniGrpc:
+    port: 11000
+
+# Kubernetes service ports (external-facing ports, can be different from server ports)
+service:
+  port: 8080  # Or any port, e.g., 443
+internalService:
+  port: 9090  # Or any port
+```
+
+**New capability:** You can now use the same service port across different services:
+```yaml
+servers:
+  external:
+    port: 8000  # Server ports must be different
+  internal:
+    port: 9000
+
+service:
+  port: 443  # All services can use the same port
+  useSeparateInternalService: true
+internalService:
+  port: 443  # Same as main service port (different Service object)
+```
+
+**For probe scheme (HTTP/HTTPS):**
+
+If you were using HTTPS for the internal port:
+
+**Before (v12):**
+```yaml
+internalService:
+  probeScheme: HTTPS
+```
+
+**After (v13):**
+```yaml
+servers:
+  internal:
+    scheme: HTTPS
 ```
 
 ### v11 -> v12

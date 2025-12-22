@@ -20,7 +20,7 @@ spec:
   {{- end }}
   ports:
     - port: {{ .Values.internalService.port }}
-      targetPort: internal
+      targetPort: {{ .Values.servers.internal.port }}
       protocol: TCP
       {{- if .Values.internalService.appProtocol }}
       appProtocol: {{ .Values.internalService.appProtocol }}

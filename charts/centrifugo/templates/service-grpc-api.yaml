@@ -20,7 +20,7 @@ spec:
   {{- end }}
   ports:
     - port: {{ .Values.grpcService.port }}
-      targetPort: grpc
+      targetPort: {{ .Values.servers.grpc.port }}
       protocol: TCP
       {{- if .Values.grpcService.appProtocol }}
       appProtocol: {{ .Values.grpcService.appProtocol }}

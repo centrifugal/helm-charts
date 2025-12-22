@@ -35,6 +35,32 @@ priorityClassName: ""
 # Annotations to be added to the deployment
 annotations: {}
 
+# ============================================
+# CENTRIFUGO SERVERS
+# ============================================
+# Configuration for Centrifugo server endpoints.
+# These define what ports Centrifugo listens on inside the container.
+# Service ports (configured below) can be different and will forward to these ports.
+servers:
+  # External server for client connections (WebSocket, HTTP streaming, SSE, SockJS)
+  external:
+    port: 8000
+  # Internal server for operational endpoints (health checks, Prometheus metrics, admin UI)
+  internal:
+    port: 9000
+    # Scheme for HTTP/HTTPS (used by probes and metrics scraping)
+    scheme: HTTP
+  # GRPC API server for backend operations (publish, presence, history, etc.)
+  grpc:
+    port: 10000
+  # Unidirectional GRPC server for streaming
+  uniGrpc:
+    port: 11000
+
+# ============================================
+# SERVICE CONFIGURATION
+# ============================================
+
 ## Main service configuration.
 ## By default, this service exposes all ports (external, internal, grpc, uni-grpc).
 ## Use useSeparateInternalService, useSeparateGrpcService, useSeparateUniGrpcService
@@ -43,8 +69,9 @@ service:
   ## Service type
   ##
   type: ClusterIP
-  ## Service port
-  ##
+  ## Service port (external-facing port number)
+  ## This forwards to servers.external.port (default: 8000)
+  ## You can set this to any port (e.g., 443 for HTTPS) independent of the server port.
   port: 8000
   ## Specify the nodePort value for the LoadBalancer and NodePort service types.
   ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
@@ -63,20 +90,26 @@ service:
   ## Specify custom appProtocol for a service port.
   appProtocol: ""
   ##
-  ## Use separate service for internal endpoints. It could be useful for configuring same port number for all services.
+  ## Use separate Kubernetes Service for internal endpoints.
+  ## Useful for applying different Service configurations (type, annotations, labels),
+  ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
   useSeparateInternalService: false
-  ## Use separate service for GRPC API endpoints. It could be useful for configuring same port number for all services.
+  ## Use separate Kubernetes Service for GRPC API endpoints.
+  ## Useful for applying different Service configurations (type, annotations, labels),
+  ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
   useSeparateGrpcService: false
-  ## Use separate service for GRPC unidirectional stream. It could be useful for configuring same port number for all services.
+  ## Use separate Kubernetes Service for GRPC unidirectional stream.
+  ## Useful for applying different Service configurations (type, annotations, labels),
+  ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
   useSeparateUniGrpcService: false
 
 ## Internal service configuration.
 ## Note: These settings only apply when service.useSeparateInternalService is true.
 ## Otherwise, internal port is exposed on the main service above.
 internalService:
+  ## Service port (forwards to servers.internal.port, default: 9000)
   port: 9000
   type: ClusterIP
-  probeScheme: HTTP
   # Static NodePort, if set.
   nodePort: ""
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
@@ -93,6 +126,7 @@ internalService:
 ## Note: These settings only apply when service.useSeparateGrpcService is true.
 ## Otherwise, GRPC API port is exposed on the main service above.
 grpcService:
+  ## Service port (forwards to servers.grpc.port, default: 10000)
   port: 10000
   type: ClusterIP
   # Static NodePort, if set.
@@ -108,6 +142,7 @@ grpcService:
 ## Note: These settings only apply when service.useSeparateUniGrpcService is true.
 ## Otherwise, uni GRPC port is exposed on the main service above.
 uniGrpcService:
+  ## Service port (forwards to servers.uniGrpc.port, default: 11000)
   port: 11000
   type: ClusterIP
   # Static NodePort, if set.

@@ -20,7 +20,7 @@ spec:
   {{- end }}
   ports:
     - port: {{ .Values.uniGrpcService.port }}
-      targetPort: uni-grpc
+      targetPort: {{ .Values.servers.uniGrpc.port }}
       protocol: TCP
       {{- if .Values.uniGrpcService.appProtocol }}
       appProtocol: {{ .Values.uniGrpcService.appProtocol }}

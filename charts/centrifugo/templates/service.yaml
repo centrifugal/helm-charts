@@ -19,7 +19,7 @@ spec:
   {{- end }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: external
+      targetPort: {{ .Values.servers.external.port }}
       protocol: TCP
       {{- if .Values.service.appProtocol }}
       appProtocol: {{ .Values.service.appProtocol }}
@@ -30,7 +30,7 @@ spec:
       {{- end }}
 {{- if not .Values.service.useSeparateInternalService }}
     - port: {{ .Values.internalService.port }}
-      targetPort: internal
+      targetPort: {{ .Values.servers.internal.port }}
       protocol: TCP
       {{- if .Values.internalService.appProtocol }}
       appProtocol: {{ .Values.internalService.appProtocol }}
@@ -42,7 +42,7 @@ spec:
 {{- end }}
 {{- if not .Values.service.useSeparateGrpcService }}
     - port: {{ .Values.grpcService.port }}
-      targetPort: grpc
+      targetPort: {{ .Values.servers.grpc.port }}
       protocol: TCP
       {{- if .Values.grpcService.appProtocol }}
       appProtocol: {{ .Values.grpcService.appProtocol }}
@@ -54,7 +54,7 @@ spec:
 {{- end }}
 {{- if not .Values.service.useSeparateUniGrpcService }}
     - port: {{ .Values.uniGrpcService.port }}
-      targetPort: uni-grpc
+      targetPort: {{ .Values.servers.uniGrpc.port }}
       protocol: TCP
       {{- if .Values.uniGrpcService.appProtocol }}
       appProtocol: {{ .Values.uniGrpcService.appProtocol }}

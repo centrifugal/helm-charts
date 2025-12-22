@@ -95,13 +95,13 @@ spec:
             - --health.enabled
             - --prometheus.enabled
             - --http_server.port
-            - "{{ .Values.service.port }}"
+            - "{{ .Values.servers.external.port }}"
             - --http_server.internal_port
-            - "{{ .Values.internalService.port }}"
+            - "{{ .Values.servers.internal.port }}"
             - --grpc_api.port
-            - "{{ .Values.grpcService.port }}"
+            - "{{ .Values.servers.grpc.port }}"
             - --uni_grpc.port
-            - "{{ .Values.uniGrpcService.port }}"
+            - "{{ .Values.servers.uniGrpc.port }}"
           {{- with .Values.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
@@ -128,13 +128,13 @@ spec:
             {{- end }}
           ports:
             - name: external
-              containerPort: {{ .Values.service.port }}
+              containerPort: {{ .Values.servers.external.port }}
             - name: internal
-              containerPort: {{ .Values.internalService.port }}
+              containerPort: {{ .Values.servers.internal.port }}
             - name: grpc
-              containerPort: {{ .Values.grpcService.port }}
+              containerPort: {{ .Values.servers.grpc.port }}
             - name: uni-grpc
-              containerPort: {{ .Values.uniGrpcService.port }}
+              containerPort: {{ .Values.servers.uniGrpc.port }}
           {{- if .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
@@ -142,8 +142,8 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.internalService.port }}
-              scheme: {{ .Values.internalService.probeScheme }}
+              port: {{ .Values.servers.internal.port }}
+              scheme: {{ .Values.servers.internal.scheme }}
             initialDelaySeconds: 30
             periodSeconds: 10
           {{- end }}
@@ -154,8 +154,8 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ .Values.internalService.port }}
-              scheme: {{ .Values.internalService.probeScheme }}
+              port: {{ .Values.servers.internal.port }}
+              scheme: {{ .Values.servers.internal.scheme }}
             initialDelaySeconds: 3
             periodSeconds: 10
           {{- end }}

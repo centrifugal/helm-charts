@@ -23,7 +23,7 @@ spec:
   endpoints:
     - port: internal
       path: /metrics
-      {{- if eq .Values.internalService.probeScheme "HTTPS" }}
+      {{- if eq .Values.servers.internal.scheme "HTTPS" }}
       scheme: https
       {{- end }}
       {{- if .Values.metrics.serviceMonitor.interval }}
