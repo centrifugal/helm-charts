@@ -266,6 +266,12 @@ dnsConfig: {}
 # Additional environment variables to be passed to Centrifugo container.
 env: {}
 
+envFrom: []
+  # - configMapRef:
+  #     name: my-config-map
+  # - secretRef:
+  #     name: my-secret
+
 # Additional secret environment variables to be passed to Centrifugo container.
 envSecret: []
 
