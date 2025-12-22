@@ -26,6 +26,7 @@ For Centrifugo configuration options, see the [official documentation](https://c
 - [Production Deployment](#production-deployment)
   - [Resource Considerations](#resource-considerations)
   - [High Availability Example](#high-availability-example)
+  - [Monitoring Distributed Deployments](#monitoring-distributed-deployments)
   - [Graceful Shutdown](#graceful-shutdown)
   - [Health Probes](#health-probes)
   - [Troubleshooting](#troubleshooting)
@@ -631,6 +632,71 @@ resources:
     memory: 512Mi
 ```
 
+### Monitoring Distributed Deployments
+
+When running Centrifugo with multiple replicas, proper monitoring is essential. The chart includes built-in support for Prometheus Operator via ServiceMonitor, which automatically discovers and scrapes **each pod individually**.
+
+#### How It Works
+
+The ServiceMonitor selects pods by labels, not services. When you have multiple replicas:
+- Prometheus discovers all pods matching the selector
+- Each pod becomes a separate scrape target
+- Metrics are collected from `http://<pod-ip>:9000/metrics` on each replica
+- You can query metrics per-pod or aggregate across all pods
+
+#### Configuration Example
+
+```yaml
+# Deploy multiple replicas
+replicaCount: 5
+
+# Enable ServiceMonitor for Prometheus Operator
+metrics:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    # IMPORTANT: Match your Prometheus Operator's selector
+    additionalLabels:
+      release: prometheus  # For kube-prometheus-stack
+```
+
+#### Verifying Scrape Targets
+
+After deployment, verify Prometheus is scraping all pods:
+
+1. Check ServiceMonitor was created:
+   ```bash
+   kubectl get servicemonitor
+   ```
+
+2. In Prometheus UI, go to **Status → Targets**
+3. Look for targets matching `centrifugo/centrifugo-*`
+4. You should see one target per replica (e.g., 5 targets for 5 replicas)
+
+#### Key Metrics for Distributed Setups
+
+Monitor these metrics across all pods:
+
+- `centrifugo_node_num_clients` — connections per pod (should be balanced)
+- `centrifugo_node_num_channels` — active channels per pod
+- `centrifugo_node_num_subscriptions` — total subscriptions per pod
+- `centrifugo_redis_messages_sent_total` — coordination traffic (if using Redis engine)
+- Standard resource metrics: `container_memory_usage_bytes`, `container_cpu_usage_seconds_total`
+
+Example PromQL queries:
+```promql
+# Total connections across all pods
+sum(centrifugo_node_num_clients)
+
+# Connection distribution (check balance)
+centrifugo_node_num_clients
+
+# Average connections per pod
+avg(centrifugo_node_num_clients)
+```
+
+See the [Centrifugo observability documentation](https://centrifugal.dev/docs/server/observability) for the complete metrics reference.
+
 ### Graceful Shutdown
 
 When a pod terminates, Kubernetes removes it from Service endpoints while simultaneously sending SIGTERM to the container. These operations happen concurrently, creating a race condition where traffic may still be routed to a terminating pod.
@@ -1125,10 +1191,22 @@ initContainers:
 
 ### Metrics Parameters
 
+Centrifugo exposes Prometheus metrics on the internal port (`9000` by default) at `/metrics`. The metrics endpoint is always enabled.
+
+For **Prometheus Operator** integration, enable the ServiceMonitor:
+
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `metrics.serviceMonitor.enabled` | Create ServiceMonitor for Prometheus Operator | `false` |
 | `metrics.serviceMonitor.interval` | Scrape interval | `30s` |
+| `metrics.serviceMonitor.scrapeTimeout` | Scrape timeout | not set |
+| `metrics.serviceMonitor.namespace` | Namespace for ServiceMonitor (defaults to chart namespace) | `""` |
+| `metrics.serviceMonitor.additionalLabels` | Labels for Prometheus Operator selector (e.g., `release: prometheus`) | `{}` |
+| `metrics.serviceMonitor.annotations` | Custom annotations | `{}` |
+| `metrics.serviceMonitor.honorLabels` | Honor labels from scraped metrics | `false` |
+| `metrics.serviceMonitor.relabellings` | Metric relabeling configuration | not set |
+
+**For distributed deployments with multiple replicas**, the ServiceMonitor automatically scrapes each pod individually. See [Monitoring Distributed Deployments](#monitoring-distributed-deployments) for details.
 
 See [values.yaml](values.yaml) for the full list of parameters.
 

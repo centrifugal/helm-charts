@@ -405,6 +405,23 @@ startupProbe: {}
 ## Prometheus metrics configuration.
 ## Note: Prometheus metrics endpoint (/metrics) is always enabled on the internal port.
 ## This section configures the ServiceMonitor for Prometheus Operator.
+##
+## DISTRIBUTED SETUPS (Multiple Replicas):
+## When running Centrifugo with multiple replicas, the ServiceMonitor automatically discovers
+## and scrapes each pod individually. Prometheus will create separate scrape targets for each
+## replica, ensuring you get metrics from all nodes in your distributed deployment.
+##
+## Example for multi-replica setup:
+##   replicaCount: 3
+##   metrics:
+##     serviceMonitor:
+##       enabled: true
+##       interval: 30s
+##       additionalLabels:
+##         release: prometheus  # Match your Prometheus Operator's serviceMonitorSelector
+##
+## This will result in Prometheus scraping all 3 pods individually at http://<pod-ip>:9000/metrics
+##
 metrics:
   serviceMonitor:
     enabled: false
@@ -412,12 +429,15 @@ metrics:
     ##
     # namespace: ""
     ## Specify the interval at which metrics should be scraped
+    ## For distributed setups with many replicas, consider the total scrape load on Prometheus.
+    ## Example: 10 replicas * 30s interval = 10 targets scraped every 30 seconds
     ##
     interval: 30s
     ## Specify the timeout after which the scrape is ended
     ##
     # scrapeTimeout: 30s
     ## Specify Metric Relabellings to add to the scrape endpoint
+    ## Useful for adding pod/instance labels in distributed setups
     ##
     # relabellings:
     ## Specify honorLabels parameter to add the scrape endpoint
@@ -425,7 +445,12 @@ metrics:
     honorLabels: false
     ## Used to pass Labels that are used by the Prometheus installed in your cluster to select Service Monitors to work with
     ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
-    ## Can be used to specify the release label for ServiceMonitor. Sometimes it should be custom for prometheus operator to work.
+    ## IMPORTANT: Set this to match your Prometheus Operator's serviceMonitorSelector
+    ## Common examples:
+    ##   additionalLabels:
+    ##     release: prometheus           # For prometheus-operator/kube-prometheus-stack
+    ##     prometheus: kube-prometheus   # For some custom setups
+    ##
     additionalLabels: {}
     ## Set custom annotations.
     annotations: {}
