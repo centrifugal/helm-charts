@@ -1,11 +1,18 @@
-## Global Docker image parameters
-## Please, note that this will override the image parameters, including dependencies, configured to use the global value
-## Current available global Docker image parameters: imageRegistry and imagePullSecrets
-##
+# ============================================
+# GLOBAL PARAMETERS
+# ============================================
+# Global values can override chart-specific settings.
+# Useful when this chart is used as a sub-chart in an umbrella chart,
+# or when you want to apply the same settings across multiple charts.
+#
+# Supported global parameters:
+# - imageRegistry: Override image.registry for all images
+# - imagePullSecrets: Override imagePullSecrets for all images
+#
 # global:
-#   imageRegistry: myRegistryName
+#   imageRegistry: my-private-registry.com
 #   imagePullSecrets:
-#     - myRegistryKeySecretName
+#     - my-registry-secret
 
 replicaCount: 1
 
@@ -22,6 +29,7 @@ image:
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+# Namespace is installation concern, not chart concern. namespaceOverride is not recommended to be used.
 namespaceOverride: ""
 priorityClassName: ""
 # Annotations to be added to the deployment
@@ -208,13 +216,10 @@ autoscaling:
   memory:
     enabled: false
     targetMemoryUtilizationPercentage: 80
-  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#default-behavior
-  behavior: {}
-
-autoscalingTemplate: []
-  # Custom or additional autoscaling metrics
+  # Custom HPA metrics (e.g., Prometheus metrics via prometheus-adapter)
   # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-metrics-apis
   # ref: https://github.com/kubernetes-sigs/prometheus-adapter/
+  customMetrics: []
   # - type: Pods
   #   pods:
   #     metric:
@@ -223,6 +228,9 @@ autoscalingTemplate: []
   #     target:
   #       type: AverageValue
   #       averageValue: 10000m # NOTE: # 10000m = 10 actual metric value (10 clients)
+  # Scaling behavior configuration
+  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#default-behavior
+  behavior: {}
 
 podDisruptionBudget:
   enabled: false
@@ -250,24 +258,23 @@ lifecycle:
 podAnnotations: {}
 podLabels: {}
 
+# Pod-level security context: identity and filesystem settings
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
   fsGroup: 1000
+  # You can also tune sysctl settings (pod-level only):
+  # sysctls:
+  #   - name: net.core.somaxconn
+  #     value: "2048"
 
+# Container-level security context: privileges and capabilities
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
       - ALL
   readOnlyRootFilesystem: true
-  runAsNonRoot: true
-  runAsUser: 1000
-  #
-  # You can also tune sysctl, ex.:
-  # sysctls:
-  #   - name: net.core.somaxconn
-  #     value: "2048"
 
 deploymentStrategy: {}
   # type: RollingUpdate
@@ -290,12 +297,6 @@ hostAliases: []
 #    hostnames:
 #      - "foo.local"
 #      - "bar.local"
-
-# Enable/disable service environment variables in the pod.
-# Setting to false can significantly speed up pod startup.
-# Centrifugo typically doesn't need service environment variables.
-# See https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/#accessing-the-service
-enableServiceLinks: true
 
 # Runtime class for the pod (e.g., gvisor, kata-containers).
 # See https://kubernetes.io/docs/concepts/containers/runtime-class/
@@ -332,9 +333,7 @@ terminationMessagePolicy: ""
 
 # Liveness probe for the main Centrifugo container.
 # Default: httpGet probe on /health endpoint (port 9000).
-# You can override with full probe configuration:
-# - httpGet, exec, tcpSocket: Supported in all Kubernetes versions
-# - grpc: Requires Kubernetes 1.23+ (alpha), 1.24+ (beta), 1.27+ (GA)
+# You can override with full probe configuration.
 livenessProbe: {}
 #  httpGet:
 #    path: /health
@@ -348,9 +347,7 @@ livenessProbe: {}
 
 # Readiness probe for the main Centrifugo container.
 # Default: httpGet probe on /health endpoint (port 9000).
-# You can override with full probe configuration:
-# - httpGet, exec, tcpSocket: Supported in all Kubernetes versions
-# - grpc: Requires Kubernetes 1.23+ (alpha), 1.24+ (beta), 1.27+ (GA)
+# You can override with full probe configuration.
 readinessProbe: {}
 #  httpGet:
 #    path: /health
@@ -364,7 +361,6 @@ readinessProbe: {}
 
 # Startup probe for the main Centrifugo container.
 # Useful for slow-starting containers to avoid liveness probe killing the pod.
-# You can use httpGet, exec, tcpSocket (all versions), or grpc (requires Kubernetes 1.23+).
 # See https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 startupProbe: {}
 #  httpGet:

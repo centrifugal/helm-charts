@@ -1059,7 +1059,6 @@ initContainers:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `hostAliases` | Custom host-to-IP mappings | `[]` |
-| `enableServiceLinks` | Enable service environment variables (disable for faster startup) | `true` |
 | `runtimeClassName` | Runtime class name (e.g., gvisor, kata-containers) | `""` |
 | `shareProcessNamespace` | Share process namespace between containers | `false` |
 | `schedulerName` | Custom scheduler name | `""` |
@@ -1118,14 +1117,15 @@ Version 13 introduces a simplified, modern approach to secret management:
 - `secrets.*` - All predefined secret values (tokenHmacSecretKey, adminPassword, etc.)
 - `existingSecret` - Reference to chart-managed secret
 - Chart no longer creates a Secret resource
+- `autoscalingTemplate` - Renamed to `autoscaling.customMetrics` for clarity
 
 **Changed:**
 - `envSecret` - Now the primary way to reference secrets (structure simplified)
+- Security contexts - Removed duplication of `runAsUser`/`runAsNonRoot` between pod and container contexts
 
 **Added:**
 - `envFrom` parameter to populate environment variables from ConfigMaps or Secrets (useful for bulk importing secrets from External Secrets Operator, Sealed Secrets, etc.)
 - Pod-level configuration:
-  - `enableServiceLinks` - Disable for faster pod startup (default: true)
   - `runtimeClassName` - Support for gVisor, Kata Containers, etc.
   - `shareProcessNamespace` - For debugging/profiling with sidecars
   - `schedulerName` - Custom scheduler support

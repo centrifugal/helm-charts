@@ -59,8 +59,8 @@ spec:
       {{- if .Values.schedulerName }}
       schedulerName: {{ .Values.schedulerName }}
       {{- end }}
-      {{- if not .Values.enableServiceLinks }}
-      enableServiceLinks: false
+      {{- if hasKey .Values "enableServiceLinks" }}
+      enableServiceLinks: {{ .Values.enableServiceLinks }}
       {{- end }}
       {{- if .Values.shareProcessNamespace }}
       shareProcessNamespace: {{ .Values.shareProcessNamespace }}
