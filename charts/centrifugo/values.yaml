@@ -42,10 +42,11 @@ annotations: {}
 # These define what ports Centrifugo listens on inside the container.
 # Service ports (configured below) can be different and will forward to these ports.
 servers:
-  # External server for client connections (WebSocket, HTTP streaming, SSE, SockJS)
+  # External server for client connections (WebSocket, HTTP streaming/SSE with emulation,
+  # unidirectional HTTP transports)
   external:
     port: 8000
-  # Internal server for operational endpoints (health checks, Prometheus metrics, admin UI)
+  # Internal server endpoints (server HTTP API, health checks, Prometheus metrics, admin UI)
   internal:
     port: 9000
     # Scheme for HTTP/HTTPS (used by probes and metrics scraping)
