@@ -63,9 +63,9 @@ servers:
 # ============================================
 
 ## Main service configuration.
-## By default, this service exposes all ports (external, internal, grpc, uni-grpc).
+## By default, this service exposes all servers (external, internal, grpc, uni-grpc).
 ## Use useSeparateInternalService, useSeparateGrpcService, useSeparateUniGrpcService
-## to split ports into dedicated services with their own configuration.
+## to split servers into dedicated services with their own configuration.
 service:
   ## Service type
   ##
