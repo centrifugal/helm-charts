@@ -102,9 +102,15 @@ spec:
             - "{{ .Values.servers.grpc.port }}"
             - --uni_grpc.port
             - "{{ .Values.servers.uniGrpc.port }}"
-          {{- with .Values.envFrom }}
+          {{- if or .Values.existingSecret .Values.envFrom }}
           envFrom:
+            {{- if .Values.existingSecret }}
+            - secretRef:
+                name: {{ .Values.existingSecret }}
+            {{- end }}
+            {{- with .Values.envFrom }}
             {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- end }}
           {{- if or .Values.env .Values.envSecret }}
           env:

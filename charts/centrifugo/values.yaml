@@ -84,6 +84,14 @@ config:
 # ENVIRONMENT VARIABLES
 # ============================================
 
+# Reference to an existing Kubernetes Secret containing Centrifugo configuration.
+# When set, all keys from this secret will be loaded as environment variables.
+# This is the simplest way to manage secrets - create your secret externally, then reference it here.
+# The chart does NOT create this secret - you must create it yourself.
+# Note: Keys in the secret should use Centrifugo's expected format (e.g., CENTRIFUGO_ADMIN_PASSWORD).
+existingSecret: ""
+  # existingSecret: "centrifugo-secrets"
+
 # Additional environment variables to be passed to Centrifugo container.
 # Use for non-sensitive configuration that overrides config file options.
 env: {}

@@ -791,23 +791,35 @@ helm install [RELEASE_NAME] centrifugal/centrifugo \
 
 ## Secret Management
 
-This chart follows modern Kubernetes secret management practices. **The chart does not create secrets** - you manage them externally and reference them via `envSecret`.
+This chart follows modern Kubernetes secret management practices. **The chart does not create secrets** - you manage them externally and reference them via `existingSecret`, `envSecret`, or `envFrom`.
 
 ### Creating Secrets
 
-First, create a Kubernetes secret with your sensitive configuration:
+First, create a Kubernetes secret with your sensitive configuration. Use Centrifugo's environment variable naming format:
 
 ```bash
 kubectl create secret generic centrifugo-secrets \
-  --from-literal=client.token.hmac_secret_key="your-hmac-secret" \
-  --from-literal=admin.password="your-admin-password" \
-  --from-literal=admin.secret="your-admin-secret" \
-  --from-literal=http_api.key="your-api-key"
+  --from-literal=CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY="your-hmac-secret" \
+  --from-literal=CENTRIFUGO_ADMIN_PASSWORD="your-admin-password" \
+  --from-literal=CENTRIFUGO_ADMIN_SECRET="your-admin-secret" \
+  --from-literal=CENTRIFUGO_HTTP_API_KEY="your-api-key"
 ```
 
 ### Referencing Secrets
 
-Reference secrets in your `values.yaml` using `envSecret`:
+#### Option 1: Using `existingSecret` (Recommended for simplicity)
+
+The simplest approach - reference an existing secret by name, and all its keys will be loaded as environment variables:
+
+```yaml
+existingSecret: "centrifugo-secrets"
+```
+
+This automatically loads all environment variables from the secret. Make sure secret keys use Centrifugo's environment variable format (e.g., `CENTRIFUGO_ADMIN_PASSWORD`).
+
+#### Option 2: Using `envSecret` (For granular control)
+
+Reference individual secret keys in your `values.yaml` using `envSecret`:
 
 ```yaml
 envSecret:
@@ -921,9 +933,9 @@ envSecret:
       key: http_api.key
 ```
 
-#### Option 2: Bulk Import with `envFrom`
+#### Option 2: Bulk Import with `existingSecret` or `envFrom`
 
-For simpler configuration, use `envFrom` to import all environment variables from the secret at once. Store secrets in Vault with the proper Centrifugo environment variable names:
+For simpler configuration, import all environment variables from the secret at once. Store secrets in Vault with the proper Centrifugo environment variable names:
 
 In Vault, structure your secrets like this:
 ```bash
@@ -956,7 +968,15 @@ spec:
         key: secret/centrifugo
 ```
 
-Then use `envFrom` in your Helm values to import all secrets:
+Then reference the secret in your Helm values. You can use either `existingSecret` (simpler) or `envFrom` (more flexible):
+
+**Using `existingSecret` (recommended):**
+
+```yaml
+existingSecret: "centrifugo-secrets"
+```
+
+**Or using `envFrom` (if you need to combine multiple sources):**
 
 ```yaml
 envFrom:
@@ -1215,11 +1235,10 @@ See [values.yaml](values.yaml) for the full list of parameters.
 
 ### v12 -> v13 (Breaking Changes)
 
-Version 13 introduces a simplified, modern approach to secret management:
+Version 13 introduces a simplified approach to secret management, some layout refactorings, better documentation.
 
 **Removed:**
 - `secrets.*` - All predefined secret values (tokenHmacSecretKey, adminPassword, etc.)
-- `existingSecret` - Reference to chart-managed secret
 - Chart no longer creates a Secret resource
 - `autoscalingTemplate` - Renamed to `autoscaling.customMetrics` for clarity
 - `service.useSeparateInternalService` - Moved to `serviceInternal.useSeparate`
@@ -1227,9 +1246,9 @@ Version 13 introduces a simplified, modern approach to secret management:
 - `service.useSeparateUniGrpcService` - Moved to `serviceUniGrpc.useSeparate`
 
 **Changed:**
-- `envSecret` - Now the primary way to reference secrets (structure simplified)
+- `existingSecret`, `envSecret`, and `envFrom` are now the ways to reference externally-managed secrets (chart no longer creates secrets)
 - Security contexts - Removed duplication of `runAsUser`/`runAsNonRoot` between pod and container contexts
-- **GRPC API is now opt-in** - The chart no longer passes `--grpc_api.enabled` flag by default. Users must explicitly enable GRPC API in their configuration if needed
+- **GRPC API is now opt-in** - The chart no longer passes `--grpc_api.enabled` flag by default. Users must explicitly enable GRPC API in their Centrifugo configuration if needed
 - **Port configuration decoupled** - Centrifugo server ports are now separate from Kubernetes service ports. Service ports
   (`service.port`, `serviceInternal.port`, etc.) can now be configured independently from server ports (defined in new `servers` section).
   This allows using the same service port number across different services (e.g., all services can use port 443) since they map to
@@ -1241,6 +1260,7 @@ Version 13 introduces a simplified, modern approach to secret management:
   - All service-specific configuration (port, type, annotations, labels, etc.) now colocated with the `useSeparate` flag in the same section
 
 **Added:**
+- `existingSecret` - Simple reference to an external Kubernetes Secret (all keys loaded as environment variables)
 - `servers` section - Explicit configuration for Centrifugo server endpoints (external, internal, grpc, uniGrpc) with extensible properties per server
 - `envFrom` parameter to populate environment variables from ConfigMaps or Secrets (useful for bulk importing secrets from External Secrets Operator, Sealed Secrets, etc.)
 - Pod-level configuration:
@@ -1329,22 +1349,23 @@ envSecret:
       key: http_api.key
 ```
 
-If you were using `existingSecret`, you now reference the secret keys directly:
+**Alternative: Using `existingSecret` (simpler):**
 
-**Before (v12):**
-```yaml
-existingSecret: my-secret
+If you prefer a simpler approach, create a secret with environment variable names and use `existingSecret`:
+
+```bash
+kubectl create secret generic centrifugo-secrets \
+  --from-literal=CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY="your-value" \
+  --from-literal=CENTRIFUGO_ADMIN_PASSWORD="your-value" \
+  --from-literal=CENTRIFUGO_ADMIN_SECRET="your-value" \
+  --from-literal=CENTRIFUGO_HTTP_API_KEY="your-value"
 ```
 
-**After (v13):**
 ```yaml
-envSecret:
-  - name: CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY
-    secretKeyRef:
-      name: my-secret
-      key: tokenHmacSecretKey  # use whatever key names exist in your secret
-  # ... add other keys as needed
+existingSecret: "centrifugo-secrets"
 ```
+
+This loads all keys from the secret as environment variables. Note: Secret keys must use Centrifugo's environment variable format (uppercase with `CENTRIFUGO_` prefix).
 
 **For service configuration:**
 
