@@ -308,7 +308,7 @@ ingressInternal:
 # ============================================
 
 # Be careful when scaling to more that 1 replicas. You need to use Redis or Nats
-# in that case as shown in readme and in https://centrifugal.dev/docs/server/engines. 
+# in that case as shown in readme and in https://centrifugal.dev/docs/server/engines
 replicaCount: 1
 
 # Number of old ReplicaSets to retain for rollback
