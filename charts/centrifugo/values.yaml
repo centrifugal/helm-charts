@@ -102,10 +102,10 @@ serviceInternal:
   ## Service port (forwards to servers.internal.port, default: 9000)
   ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
   port: 9000
-  ## Static NodePort for this port. Used in both modes to set the nodePort field.
+  ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
-  ## Service type. When useSeparate=true, this is the service type.
-  ## When useSeparate=false, used to determine if nodePort should be rendered.
+  ## Service type. Only used when useSeparate=true to set the separate service type.
+  ## When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   ## Only used when useSeparate=true (separate service).
@@ -128,10 +128,10 @@ serviceGrpc:
   ## Service port (forwards to servers.grpc.port, default: 10000)
   ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
   port: 10000
-  ## Static NodePort for this port. Used in both modes to set the nodePort field.
+  ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
-  ## Service type. When useSeparate=true, this is the service type.
-  ## When useSeparate=false, used to determine if nodePort should be rendered.
+  ## Service type. Only used when useSeparate=true to set the separate service type.
+  ## When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   ## Only used when useSeparate=true (separate service).
@@ -154,10 +154,10 @@ serviceUniGrpc:
   ## Service port (forwards to servers.uniGrpc.port, default: 11000)
   ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
   port: 11000
-  ## Static NodePort for this port. Used in both modes to set the nodePort field.
+  ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
-  ## Service type. When useSeparate=true, this is the service type.
-  ## When useSeparate=false, used to determine if nodePort should be rendered.
+  ## Service type. Only used when useSeparate=true to set the separate service type.
+  ## When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   ## Only used when useSeparate=true (separate service).

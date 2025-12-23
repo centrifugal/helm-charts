@@ -36,7 +36,7 @@ spec:
       {{- if .Values.serviceInternal.appProtocol }}
       appProtocol: {{ .Values.serviceInternal.appProtocol }}
       {{- end }}
-      {{- if (and (eq .Values.serviceInternal.type "NodePort") (not (empty .Values.serviceInternal.nodePort))) }}
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.serviceInternal.nodePort))) }}
       nodePort: {{ .Values.serviceInternal.nodePort }}
       {{- end }}
 {{- end }}
@@ -48,7 +48,7 @@ spec:
       {{- if .Values.serviceGrpc.appProtocol }}
       appProtocol: {{ .Values.serviceGrpc.appProtocol }}
       {{- end }}
-      {{- if (and (eq .Values.serviceGrpc.type "NodePort") (not (empty .Values.serviceGrpc.nodePort))) }}
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.serviceGrpc.nodePort))) }}
       nodePort: {{ .Values.serviceGrpc.nodePort }}
       {{- end }}
 {{- end }}
@@ -60,7 +60,7 @@ spec:
       {{- if .Values.serviceUniGrpc.appProtocol }}
       appProtocol: {{ .Values.serviceUniGrpc.appProtocol }}
       {{- end }}
-      {{- if (and (eq .Values.serviceUniGrpc.type "NodePort") (not (empty .Values.serviceUniGrpc.nodePort))) }}
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.serviceUniGrpc.nodePort))) }}
       nodePort: {{ .Values.serviceUniGrpc.nodePort }}
       {{- end }}
 {{- end }}
