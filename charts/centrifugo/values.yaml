@@ -14,10 +14,9 @@
 #   imagePullSecrets:
 #     - my-registry-secret
 
-replicaCount: 1
-
-# Number of old ReplicaSets to retain for rollback
-revisionHistoryLimit: 10
+# ============================================
+# IMAGE CONFIGURATION
+# ============================================
 
 image:
   registry: docker.io
@@ -28,14 +27,14 @@ image:
 
 imagePullSecrets: []
 
+# ============================================
+# NAMING & METADATA
+# ============================================
+
 nameOverride: ""
 fullnameOverride: ""
 # Namespace is installation concern, not chart concern, namespaceOverride is not recommended to be used.
 namespaceOverride: ""
-priorityClassName: ""
-
-# Annotations to be added to the deployment
-annotations: {}
 
 # ============================================
 # CENTRIFUGO SERVERS
@@ -56,117 +55,187 @@ servers:
   # GRPC API server for backend operations (publish, presence, history, etc.)
   grpc:
     port: 10000
-  # Unidirectional GRPC server for streaming
+  # Unidirectional GRPC transport server
   uniGrpc:
     port: 11000
+
+# ============================================
+# CENTRIFUGO CONFIGURATION
+# ============================================
+
+# Centrifugo configuration, will be transformed into config.json file.
+# See https://centrifugal.dev/docs/server/configuration for all options.
+config:
+  # Engine to use. Default memory engine allows running only one Centrifugo pod.
+  # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
+  # documentation: https://centrifugal.dev/docs/server/engines
+  engine:
+    type: "memory"
+
+  # Enable admin web interface by default.
+  admin:
+    enabled: true
+
+  # Array of namespaces.
+  channel:
+    namespaces: []
+
+# ============================================
+# ENVIRONMENT VARIABLES
+# ============================================
+
+# Additional environment variables to be passed to Centrifugo container.
+# Use for non-sensitive configuration that overrides config file options.
+env: {}
+  # CENTRIFUGO_LOG_LEVEL: "debug"
+
+# Secret environment variables - reference external Kubernetes secrets.
+# Use for sensitive configuration (tokens, passwords, API keys, etc.).
+# The chart does NOT create secrets - you manage them externally.
+envSecret: []
+  # - name: CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: client.token.hmac_secret_key
+  # - name: CENTRIFUGO_ADMIN_PASSWORD
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: admin.password
+  # - name: CENTRIFUGO_ADMIN_SECRET
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: admin.secret
+  # - name: CENTRIFUGO_HTTP_API_KEY
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: http_api.key
+  # - name: CENTRIFUGO_GRPC_API_KEY
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: grpc_api.key
+  # - name: CENTRIFUGO_LICENSE
+  #   secretKeyRef:
+  #     name: centrifugo-secrets
+  #     key: license
+
+# Populate environment variables from ConfigMaps or Secrets.
+# Use for bulk importing environment variables from external sources.
+# The chart does NOT create these ConfigMaps/Secrets - you manage them externally.
+envFrom: []
+  # - configMapRef:
+  #     name: centrifugo-config
+  # - secretRef:
+  #     name: centrifugo-secrets
 
 # ============================================
 # SERVICE CONFIGURATION
 # ============================================
 
-## Main service configuration.
-## By default, this service exposes all servers (external, internal, grpc, uni-grpc).
-## Use serviceInternal.useSeparate, serviceGrpc.useSeparate, serviceUniGrpc.useSeparate
-## to split servers into dedicated services with their own configuration.
+# Main service configuration.
+# By default, this service exposes all servers (external, internal, grpc, uni-grpc).
+# Use serviceInternal.useSeparate, serviceGrpc.useSeparate, serviceUniGrpc.useSeparate
+# to split servers into dedicated services with their own configuration.
 service:
-  ## Service type
-  ##
+  # Service type
   type: ClusterIP
-  ## Service port (external-facing port number)
-  ## This forwards to servers.external.port (default: 8000)
-  ## You can set this to any port (e.g., 443 for HTTPS) independent of the server port.
+  # Service port (external-facing port number)
+  # This forwards to servers.external.port (default: 8000)
+  # You can set this to any port (e.g., 443 for HTTPS) independent of the server port.
   port: 8000
-  ## Specify the nodePort value for the LoadBalancer and NodePort service types.
-  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
-  ##
+  # Specify the nodePort value for the LoadBalancer and NodePort service types.
+  # ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
   nodePort: ""
-  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  ## Set to "None" for headless service.
+  # Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  # Set to "None" for headless service.
   clusterIP: ""
-  ## Provide any additional annotations which may be required
-  ##
+  # Provide any additional annotations which may be required
   annotations: {}
-  ## Provide any additional labels which may be required
-  ##
+  # Provide any additional labels which may be required
   labels: {}
-  ##
-  ## Specify custom appProtocol for a service port.
+  # Specify custom appProtocol for a service port.
   appProtocol: ""
 
-## Internal service configuration.
-## By default, internal port is exposed on the main service above.
-## Use useSeparate: true to have a separate service definition.
+# Internal service configuration.
+# By default, internal port is exposed on the main service above.
+# Use useSeparate: true to have a separate service definition.
 serviceInternal:
-  ## Use separate Kubernetes Service for internal endpoints.
-  ## Useful for applying different Service configurations (type, annotations, labels),
-  ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
+  # Use separate Kubernetes Service for internal endpoints.
+  # Useful for applying different Service configurations (type, annotations, labels),
+  # network policy isolation, or separate LoadBalancer IPs per endpoint type.
   useSeparate: false
-  ## Service port (forwards to servers.internal.port, default: 9000)
-  ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
+  # Service port (forwards to servers.internal.port, default: 9000)
+  # Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
   port: 9000
-  ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
+  # Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
-  ## Service type. Only used when useSeparate=true to set the separate service type.
+  # Service type. Only used when useSeparate=true to set the separate service type.
+  # When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
-  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  ## Only used when useSeparate=true (separate service).
+  # Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  # Only used when useSeparate=true (separate service).
   clusterIP: ""
-  ## Custom appProtocol for this port. Used in both modes.
+  # Custom appProtocol for this port. Used in both modes.
   appProtocol: ""
-  ## Service annotations. Only used when useSeparate=true (separate service).
+  # Service annotations. Only used when useSeparate=true (separate service).
   annotations: {}
-  ## Service labels. Only used when useSeparate=true (separate service).
+  # Service labels. Only used when useSeparate=true (separate service).
   labels: {}
 
-## GRPC API service configuration.
-## By default, GRPC API port is exposed on the main service above.
-## Use useSeparate: true to have a separate service definition.
+# GRPC API service configuration.
+# By default, GRPC API port is exposed on the main service above.
+# Use useSeparate: true to have a separate service definition.
 serviceGrpc:
-  ## Use separate Kubernetes Service for GRPC API endpoints.
-  ## Useful for applying different Service configurations (type, annotations, labels),
-  ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
+  # Use separate Kubernetes Service for GRPC API endpoints.
+  # Useful for applying different Service configurations (type, annotations, labels),
+  # network policy isolation, or separate LoadBalancer IPs per endpoint type.
   useSeparate: false
-  ## Service port (forwards to servers.grpc.port, default: 10000)
-  ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
+  # Service port (forwards to servers.grpc.port, default: 10000)
+  # Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
   port: 10000
-  ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
+  # Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
-  ## Service type. Only used when useSeparate=true to set the separate service type.
+  # Service type. Only used when useSeparate=true to set the separate service type.
+  # When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
-  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  ## Only used when useSeparate=true (separate service).
+  # Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  # Only used when useSeparate=true (separate service).
   clusterIP: ""
-  ## Custom appProtocol for this port. Used in both modes.
+  # Custom appProtocol for this port. Used in both modes.
   appProtocol: ""
-  ## Service annotations. Only used when useSeparate=true (separate service).
+  # Service annotations. Only used when useSeparate=true (separate service).
   annotations: {}
-  ## Service labels. Only used when useSeparate=true (separate service).
+  # Service labels. Only used when useSeparate=true (separate service).
   labels: {}
 
-## Unidirectional GRPC service configuration.
-## By default, uni GRPC port is exposed on the main service above.
-## Use useSeparate: true to have a separate service definition.
+# Unidirectional GRPC service configuration.
+# By default, uni GRPC port is exposed on the main service above.
+# Use useSeparate: true to have a separate service definition.
 serviceUniGrpc:
-  ## Use separate Kubernetes Service for GRPC unidirectional stream.
-  ## Useful for applying different Service configurations (type, annotations, labels),
-  ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
+  # Use separate Kubernetes Service for GRPC unidirectional stream.
+  # Useful for applying different Service configurations (type, annotations, labels),
+  # network policy isolation, or separate LoadBalancer IPs per endpoint type.
   useSeparate: false
-  ## Service port (forwards to servers.uniGrpc.port, default: 11000)
-  ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
+  # Service port (forwards to servers.uniGrpc.port, default: 11000)
+  # Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
   port: 11000
-  ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
+  # Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
-  ## Service type. Only used when useSeparate=true to set the separate service type.
+  # Service type. Only used when useSeparate=true to set the separate service type.
+  # When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
-  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  ## Only used when useSeparate=true (separate service).
+  # Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  # Only used when useSeparate=true (separate service).
   clusterIP: ""
-  ## Custom appProtocol for this port. Used in both modes.
+  # Custom appProtocol for this port. Used in both modes.
   appProtocol: ""
-  ## Service annotations. Only used when useSeparate=true (separate service).
+  # Service annotations. Only used when useSeparate=true (separate service).
   annotations: {}
-  ## Service labels. Only used when useSeparate=true (separate service).
+  # Service labels. Only used when useSeparate=true (separate service).
   labels: {}
+
+# ============================================
+# INGRESS CONFIGURATION
+# ============================================
 
 ingress:
   enabled: false
@@ -234,92 +303,16 @@ ingressInternal:
     #   hosts:
     #     - centrifugo.local
 
-resources: {}
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # limits:
-  #   cpu: 500m
-  #   memory: 256Mi
+# ============================================
+# DEPLOYMENT CONFIGURATION
+# ============================================
 
-serviceAccount:
-  # Specifies whether a service account should be created.
-  create: true
-  # Annotations to add to the service account.
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template.
-  name: ""
+# Be careful when scaling to more that 1 replicas. You need to use Redis or Nats
+# in that case as shown in readme and in https://centrifugal.dev/docs/server/engines. 
+replicaCount: 1
 
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  cpu:
-    enabled: false
-    targetCPUUtilizationPercentage: 80
-  memory:
-    enabled: false
-    targetMemoryUtilizationPercentage: 80
-  # Custom HPA metrics (e.g., Prometheus metrics via prometheus-adapter)
-  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-metrics-apis
-  # ref: https://github.com/kubernetes-sigs/prometheus-adapter/
-  customMetrics: []
-  # - type: Pods
-  #   pods:
-  #     metric:
-  #       # kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/hpa_custom_metric_centrifugo_node_num_clients" | jq .
-  #       name: hpa_custom_metric_centrifugo_node_num_clients
-  #     target:
-  #       type: AverageValue
-  #       averageValue: 10000m # NOTE: # 10000m = 10 actual metric value (10 clients)
-  # Scaling behavior configuration
-  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#default-behavior
-  behavior: {}
-
-podDisruptionBudget:
-  enabled: false
-  # Minimum number/percentage of pods that must remain available during disruption.
-  # Cannot be used together with maxUnavailable.
-  minAvailable: 1
-  # Maximum number/percentage of pods that can be unavailable during disruption.
-  # Cannot be used together with minAvailable.
-  # maxUnavailable: 1
-
-terminationGracePeriodSeconds: 30
-
-# Container lifecycle hooks.
-# Default: preStop sleeps for 5 seconds to avoid endpoint propagation race condition.
-# Set to null to disable all lifecycle hooks: lifecycle: null
-lifecycle:
-  preStop:
-    exec:
-      command: ["/bin/sh", "-c", "sleep 5"]
-# Example with postStart:
-#  postStart:
-#    exec:
-#      command: ["/bin/sh", "-c", "echo Hello from the postStart handler"]
-
-podAnnotations: {}
-podLabels: {}
-
-# Pod-level security context: identity and filesystem settings
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
-  # You can also tune sysctl settings (pod-level only):
-  # sysctls:
-  #   - name: net.core.somaxconn
-  #     value: "2048"
-
-# Container-level security context: privileges and capabilities
-securityContext:
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
-  readOnlyRootFilesystem: true
+# Number of old ReplicaSets to retain for rollback
+revisionHistoryLimit: 10
 
 deploymentStrategy: {}
   # type: RollingUpdate
@@ -327,13 +320,17 @@ deploymentStrategy: {}
   #   maxSurge: 0
   #   maxUnavailable: 1
 
-extraContainers: []
-#  - name: my-sidecar
-#    image: nginx:latest
+# Annotations to be added to the deployment
+annotations: {}
 
 # ============================================
 # POD-LEVEL CONFIGURATION
 # ============================================
+
+podAnnotations: {}
+podLabels: {}
+
+priorityClassName: ""
 
 # Host aliases for the pod.
 # See https://kubernetes.io/docs/tasks/network/customize-hosts-file-for-pods/
@@ -376,6 +373,28 @@ overhead: {}
 terminationMessagePolicy: ""
 #  terminationMessagePolicy: "FallbackToLogsOnError"
 
+terminationGracePeriodSeconds: 30
+
+# Container lifecycle hooks.
+# Default: preStop sleeps for 5 seconds to avoid endpoint propagation race condition.
+# Set to null to disable all lifecycle hooks: lifecycle: null
+lifecycle:
+  preStop:
+    exec:
+      command: ["/bin/sh", "-c", "sleep 5"]
+# Example with postStart:
+#  postStart:
+#    exec:
+#      command: ["/bin/sh", "-c", "echo Hello from the postStart handler"]
+
+extraContainers: []
+#  - name: my-sidecar
+#    image: nginx:latest
+
+# Init Containers, e.g. for waiting for other resources like redis (evaluated as template).
+# See https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+initContainers: []
+
 # Liveness probe for the main Centrifugo container.
 # Default: httpGet probe on /health endpoint using servers.internal.port and servers.internal.scheme.
 # You can override with full probe configuration.
@@ -414,58 +433,13 @@ startupProbe: {}
 #  failureThreshold: 30
 #  periodSeconds: 10
 
-## Prometheus metrics configuration.
-## Note: Prometheus metrics endpoint (/metrics) is always enabled on the internal port.
-## This section configures the ServiceMonitor for Prometheus Operator.
-##
-## DISTRIBUTED SETUPS (Multiple Replicas):
-## When running Centrifugo with multiple replicas, the ServiceMonitor automatically discovers
-## and scrapes each pod individually. Prometheus will create separate scrape targets for each
-## replica, ensuring you get metrics from all nodes in your distributed deployment.
-##
-## Example for multi-replica setup:
-##   replicaCount: 3
-##   metrics:
-##     serviceMonitor:
-##       enabled: true
-##       interval: 30s
-##       additionalLabels:
-##         release: prometheus  # Match your Prometheus Operator's serviceMonitorSelector
-##
-## This will result in Prometheus scraping all 3 pods individually at http://<pod-ip>:9000/metrics
-##
-metrics:
-  serviceMonitor:
-    enabled: false
-    ## Specify the namespace in which the serviceMonitor resource will be created
-    ##
-    # namespace: ""
-    ## Specify the interval at which metrics should be scraped
-    ## For distributed setups with many replicas, consider the total scrape load on Prometheus.
-    ## Example: 10 replicas * 30s interval = 10 targets scraped every 30 seconds
-    ##
-    interval: 30s
-    ## Specify the timeout after which the scrape is ended
-    ##
-    # scrapeTimeout: 30s
-    ## Specify Metric Relabellings to add to the scrape endpoint
-    ## Useful for adding pod/instance labels in distributed setups
-    ##
-    # relabellings:
-    ## Specify honorLabels parameter to add the scrape endpoint
-    ##
-    honorLabels: false
-    ## Used to pass Labels that are used by the Prometheus installed in your cluster to select Service Monitors to work with
-    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
-    ## IMPORTANT: Set this to match your Prometheus Operator's serviceMonitorSelector
-    ## Common examples:
-    ##   additionalLabels:
-    ##     release: prometheus           # For prometheus-operator/kube-prometheus-stack
-    ##     prometheus: kube-prometheus   # For some custom setups
-    ##
-    additionalLabels: {}
-    ## Set custom annotations.
-    annotations: {}
+resources: {}
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # limits:
+  #   cpu: 500m
+  #   memory: 256Mi
 
 nodeSelector: {}
 
@@ -473,77 +447,59 @@ tolerations: []
 
 affinity: {}
 
-## ref: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config
+# ref: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-dns-config
 dnsPolicy: ""
 dnsConfig: {}
 
-# ============================================
-# ENVIRONMENT VARIABLES
-# ============================================
+# TopologySpreadConstraints for spreading pods across nodes.
+# See https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+topologySpreadConstraints: []
+  # - maxSkew: 1
+  #   topologyKey: kubernetes.io/hostname
+  #   whenUnsatisfiable: DoNotSchedule
+  #   labelSelector:
+  #     matchLabels:
+  #       app.kubernetes.io/name: centrifugo
 
-# Additional environment variables to be passed to Centrifugo container.
-# Use for non-sensitive configuration that overrides config file options.
-env: {}
-  # CENTRIFUGO_LOG_LEVEL: "debug"
-
-# Secret environment variables - reference external Kubernetes secrets.
-# Use for sensitive configuration (tokens, passwords, API keys, etc.).
-# The chart does NOT create secrets - you manage them externally.
-envSecret: []
-  # - name: CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY
-  #   secretKeyRef:
-  #     name: centrifugo-secrets
-  #     key: client.token.hmac_secret_key
-  # - name: CENTRIFUGO_ADMIN_PASSWORD
-  #   secretKeyRef:
-  #     name: centrifugo-secrets
-  #     key: admin.password
-  # - name: CENTRIFUGO_ADMIN_SECRET
-  #   secretKeyRef:
-  #     name: centrifugo-secrets
-  #     key: admin.secret
-  # - name: CENTRIFUGO_HTTP_API_KEY
-  #   secretKeyRef:
-  #     name: centrifugo-secrets
-  #     key: http_api.key
-  # - name: CENTRIFUGO_GRPC_API_KEY
-  #   secretKeyRef:
-  #     name: centrifugo-secrets
-  #     key: grpc_api.key
-  # - name: CENTRIFUGO_LICENSE
-  #   secretKeyRef:
-  #     name: centrifugo-secrets
-  #     key: license
-
-# Populate environment variables from ConfigMaps or Secrets.
-# Use for bulk importing environment variables from external sources.
-# The chart does NOT create these ConfigMaps/Secrets - you manage them externally.
-envFrom: []
-  # - configMapRef:
-  #     name: centrifugo-config
-  # - secretRef:
-  #     name: centrifugo-secrets
+podDisruptionBudget:
+  enabled: false
+  # Minimum number/percentage of pods that must remain available during disruption.
+  # Cannot be used together with maxUnavailable.
+  minAvailable: 1
+  # Maximum number/percentage of pods that can be unavailable during disruption.
+  # Cannot be used together with minAvailable.
+  # maxUnavailable: 1
 
 # ============================================
-# CENTRIFUGO CONFIGURATION
+# SECURITY
 # ============================================
 
-# Centrifugo configuration, will be transformed into config.json file.
-# See https://centrifugal.dev/docs/server/configuration for all options.
-config:
-  # Engine to use. Default memory engine allows running only one Centrifugo pod.
-  # Scale to many pods with Redis engine or Nats broker. Refer to Centrifugo
-  # documentation: https://centrifugal.dev/docs/server/engines
-  engine:
-    type: "memory"
+serviceAccount:
+  # Specifies whether a service account should be created.
+  create: true
+  # Annotations to add to the service account.
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template.
+  name: ""
 
-  # Enable admin web interface by default.
-  admin:
-    enabled: true
+# Pod-level security context: identity and filesystem settings
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+  # You can also tune sysctl settings (pod-level only):
+  # sysctls:
+  #   - name: net.core.somaxconn
+  #     value: "2048"
 
-  # Array of namespaces.
-  channel:
-    namespaces: []
+# Container-level security context: privileges and capabilities
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
 
 # ============================================
 # VOLUMES
@@ -561,23 +517,95 @@ volumeMounts: []
   #   mountPath: "/volume"
   #   readOnly: true
 
+# ============================================
+# MONITORING & METRICS
+# ============================================
 
-# TopologySpreadConstraints for spreading pods across nodes.
-# See https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
-topologySpreadConstraints: []
-  # - maxSkew: 1
-  #   topologyKey: kubernetes.io/hostname
-  #   whenUnsatisfiable: DoNotSchedule
-  #   labelSelector:
-  #     matchLabels:
-  #       app.kubernetes.io/name: centrifugo
-
-# Init Containers, e.g. for waiting for other resources like redis (evaluated as template).
-# See https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
-initContainers: []
+# Prometheus metrics configuration.
+# Note: Prometheus metrics endpoint (/metrics) is always enabled on the internal port.
+# This section configures the ServiceMonitor for Prometheus Operator.
+##
+# DISTRIBUTED SETUPS (Multiple Replicas):
+# When running Centrifugo with multiple replicas, the ServiceMonitor automatically discovers
+# and scrapes each pod individually. Prometheus will create separate scrape targets for each
+# replica, ensuring you get metrics from all nodes in your distributed deployment.
+##
+# Example for multi-replica setup:
+#   replicaCount: 3
+#   metrics:
+#     serviceMonitor:
+#       enabled: true
+#       interval: 30s
+#       additionalLabels:
+#         release: prometheus  # Match your Prometheus Operator's serviceMonitorSelector
+##
+# This will result in Prometheus scraping all 3 pods individually at http://<pod-ip>:9000/metrics
+##
+metrics:
+  serviceMonitor:
+    enabled: false
+    # Specify the namespace in which the serviceMonitor resource will be created
+    ##
+    # namespace: ""
+    # Specify the interval at which metrics should be scraped
+    # For distributed setups with many replicas, consider the total scrape load on Prometheus.
+    # Example: 10 replicas * 30s interval = 10 targets scraped every 30 seconds
+    ##
+    interval: 30s
+    # Specify the timeout after which the scrape is ended
+    ##
+    # scrapeTimeout: 30s
+    # Specify Metric Relabellings to add to the scrape endpoint
+    # Useful for adding pod/instance labels in distributed setups
+    ##
+    # relabellings:
+    # Specify honorLabels parameter to add the scrape endpoint
+    ##
+    honorLabels: false
+    # Used to pass Labels that are used by the Prometheus installed in your cluster to select Service Monitors to work with
+    # ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+    # IMPORTANT: Set this to match your Prometheus Operator's serviceMonitorSelector
+    # Common examples:
+    #   additionalLabels:
+    #     release: prometheus           # For prometheus-operator/kube-prometheus-stack
+    #     prometheus: kube-prometheus   # For some custom setups
+    ##
+    additionalLabels: {}
+    # Set custom annotations.
+    annotations: {}
 
 # ============================================
-# HOST CHECK JOB
+# AUTOSCALING
+# ============================================
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  cpu:
+    enabled: false
+    targetCPUUtilizationPercentage: 80
+  memory:
+    enabled: false
+    targetMemoryUtilizationPercentage: 80
+  # Custom HPA metrics (e.g., Prometheus metrics via prometheus-adapter)
+  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#support-for-metrics-apis
+  # ref: https://github.com/kubernetes-sigs/prometheus-adapter/
+  customMetrics: []
+  # - type: Pods
+  #   pods:
+  #     metric:
+  #       # kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/default/pods/*/hpa_custom_metric_centrifugo_node_num_clients" | jq .
+  #       name: hpa_custom_metric_centrifugo_node_num_clients
+  #     target:
+  #       type: AverageValue
+  #       averageValue: 10000m # NOTE: # 10000m = 10 actual metric value (10 clients)
+  # Scaling behavior configuration
+  # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#default-behavior
+  behavior: {}
+
+# ============================================
+# ADDITIONAL FEATURES
 # ============================================
 
 # Configuration for the hostCheck pre-installation/pre-upgrade job.
