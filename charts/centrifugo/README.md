@@ -1230,7 +1230,10 @@ Version 13 introduces a simplified, modern approach to secret management:
 - `envSecret` - Now the primary way to reference secrets (structure simplified)
 - Security contexts - Removed duplication of `runAsUser`/`runAsNonRoot` between pod and container contexts
 - **GRPC API is now opt-in** - The chart no longer passes `--grpc_api.enabled` flag by default. Users must explicitly enable GRPC API in their configuration if needed
-- **Port configuration decoupled** - Centrifugo server ports are now separate from Kubernetes service ports. Service ports (`service.port`, `serviceInternal.port`, etc.) can now be configured independently from server ports (defined in new `servers` section). This allows using the same service port number across different services (e.g., all services can use port 443) since they map to different server ports. See [Service Design](#service-design) for details.
+- **Port configuration decoupled** - Centrifugo server ports are now separate from Kubernetes service ports. Service ports
+  (`service.port`, `serviceInternal.port`, etc.) can now be configured independently from server ports (defined in new `servers` section).
+  This allows using the same service port number across different services (e.g., all services can use port 443) since they map to
+  different server ports. See [Service Design](#service-design) for details.
 - **Service configuration restructured** - Service sections renamed and reorganized for clarity:
   - `internalService` → `serviceInternal` with `useSeparate` field (previously `service.useSeparateInternalService`)
   - `grpcService` → `serviceGrpc` with `useSeparate` field (previously `service.useSeparateGrpcService`)
