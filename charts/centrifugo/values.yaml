@@ -27,18 +27,20 @@ image:
   tag: ""
 
 imagePullSecrets: []
+
 nameOverride: ""
 fullnameOverride: ""
-# Namespace is installation concern, not chart concern. namespaceOverride is not recommended to be used.
+# Namespace is installation concern, not chart concern, namespaceOverride is not recommended to be used.
 namespaceOverride: ""
 priorityClassName: ""
+
 # Annotations to be added to the deployment
 annotations: {}
 
 # ============================================
 # CENTRIFUGO SERVERS
 # ============================================
-# Configuration for Centrifugo server endpoints.
+# Configuration for Centrifugo servers.
 # These define what ports Centrifugo listens on inside the container.
 # Service ports (configured below) can be different and will forward to these ports.
 servers:
@@ -105,7 +107,6 @@ serviceInternal:
   ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
   ## Service type. Only used when useSeparate=true to set the separate service type.
-  ## When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   ## Only used when useSeparate=true (separate service).
@@ -131,7 +132,6 @@ serviceGrpc:
   ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
   ## Service type. Only used when useSeparate=true to set the separate service type.
-  ## When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   ## Only used when useSeparate=true (separate service).
@@ -157,7 +157,6 @@ serviceUniGrpc:
   ## Static NodePort for this port. When useSeparate=false, only used if main service.type is NodePort/LoadBalancer.
   nodePort: ""
   ## Service type. Only used when useSeparate=true to set the separate service type.
-  ## When useSeparate=false, this field is ignored (main service uses service.type).
   type: ClusterIP
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   ## Only used when useSeparate=true (separate service).
@@ -236,7 +235,6 @@ ingressInternal:
     #     - centrifugo.local
 
 resources: {}
-  # We recommend setting resources for production deployments.
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
