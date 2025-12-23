@@ -1,7 +1,7 @@
 {{- if .Values.ingressInternal.enabled }}
 {{- $fullName := include "centrifugo.fullname" . }}
 {{- $namespace := include "centrifugo.namespace" . }}
-{{- $svcPort := .Values.internalService.port }}
+{{- $svcPort := .Values.serviceInternal.port }}
 {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1" }}
 apiVersion: networking.k8s.io/v1
 {{- else }}
@@ -47,7 +47,7 @@ spec:
             backend:
               {{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1" }}
               service:
-                {{- if $.Values.service.useSeparateInternalService }}
+                {{- if $.Values.serviceInternal.enabled }}
                 name: {{ $fullName }}-internal
                 {{- else }}
                 name: {{ $fullName }}
@@ -55,7 +55,7 @@ spec:
                 port:
                   number: {{ $svcPort }}
               {{- else }}
-              {{- if $.Values.service.useSeparateInternalService }}
+              {{- if $.Values.serviceInternal.enabled }}
               serviceName: {{ $fullName }}-internal
               {{- else }}
               serviceName: {{ $fullName }}

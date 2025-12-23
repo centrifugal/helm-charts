@@ -1,4 +1,4 @@
-{{- if .Values.service.useSeparateGrpcService -}}
+{{- if .Values.serviceGrpc.useSeparate -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -6,28 +6,28 @@ metadata:
   namespace: {{ include "centrifugo.namespace" . }}
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
-    {{- with .Values.grpcService.labels }}
+    {{- with .Values.serviceGrpc.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- with .Values.grpcService.annotations }}
+  {{- with .Values.serviceGrpc.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.grpcService.type }}
-  {{- if and (eq .Values.grpcService.type "ClusterIP") .Values.grpcService.clusterIP }}
-  clusterIP: {{ .Values.grpcService.clusterIP }}
+  type: {{ .Values.serviceGrpc.type }}
+  {{- if and (eq .Values.serviceGrpc.type "ClusterIP") .Values.serviceGrpc.clusterIP }}
+  clusterIP: {{ .Values.serviceGrpc.clusterIP }}
   {{- end }}
   ports:
-    - port: {{ .Values.grpcService.port }}
+    - port: {{ .Values.serviceGrpc.port }}
       targetPort: {{ .Values.servers.grpc.port }}
       protocol: TCP
-      {{- if .Values.grpcService.appProtocol }}
-      appProtocol: {{ .Values.grpcService.appProtocol }}
+      {{- if .Values.serviceGrpc.appProtocol }}
+      appProtocol: {{ .Values.serviceGrpc.appProtocol }}
       {{- end }}
       name: grpc
-      {{- if (and (eq .Values.grpcService.type "NodePort") (not (empty .Values.grpcService.nodePort))) }}
-      nodePort: {{ .Values.grpcService.nodePort }}
+      {{- if (and (eq .Values.serviceGrpc.type "NodePort") (not (empty .Values.serviceGrpc.nodePort))) }}
+      nodePort: {{ .Values.serviceGrpc.nodePort }}
       {{- end }}
   selector:
     {{- include "centrifugo.selectorLabels" . | nindent 4 }}

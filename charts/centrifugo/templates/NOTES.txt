@@ -47,11 +47,11 @@ External port (client connections):
 
 Internal port provides: API, Prometheus metrics, admin UI, health checks.
 
-  kubectl --namespace {{ $namespace }} port-forward svc/{{ $fullName }} {{ .Values.internalService.port }}:{{ .Values.internalService.port }}
+  kubectl --namespace {{ $namespace }} port-forward svc/{{ $fullName }} {{ .Values.serviceInternal.port }}:{{ .Values.serviceInternal.port }}
 
-  - Admin UI:    http://localhost:{{ .Values.internalService.port }}/admin
-  - Metrics:     http://localhost:{{ .Values.internalService.port }}/metrics
-  - Health:      http://localhost:{{ .Values.internalService.port }}/health
+  - Admin UI:    http://localhost:{{ .Values.serviceInternal.port }}/admin
+  - Metrics:     http://localhost:{{ .Values.serviceInternal.port }}/metrics
+  - Health:      http://localhost:{{ .Values.serviceInternal.port }}/health
 
 === VERIFY DEPLOYMENT ===
 

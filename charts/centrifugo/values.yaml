@@ -64,7 +64,7 @@ servers:
 
 ## Main service configuration.
 ## By default, this service exposes all servers (external, internal, grpc, uni-grpc).
-## Use useSeparateInternalService, useSeparateGrpcService, useSeparateUniGrpcService
+## Use serviceInternal.useSeparate, serviceGrpc.useSeparate, serviceUniGrpc.useSeparate
 ## to split servers into dedicated services with their own configuration.
 service:
   ## Service type
@@ -90,70 +90,84 @@ service:
   ##
   ## Specify custom appProtocol for a service port.
   appProtocol: ""
-  ##
+
+## Internal service configuration.
+## By default, internal port is exposed on the main service above.
+## Use useSeparate: true to have a separate service definition.
+serviceInternal:
   ## Use separate Kubernetes Service for internal endpoints.
   ## Useful for applying different Service configurations (type, annotations, labels),
   ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
-  useSeparateInternalService: false
+  useSeparate: false
+  ## Service port (forwards to servers.internal.port, default: 9000)
+  ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
+  port: 9000
+  ## Static NodePort for this port. Used in both modes to set the nodePort field.
+  nodePort: ""
+  ## Service type. When useSeparate=true, this is the service type.
+  ## When useSeparate=false, used to determine if nodePort should be rendered.
+  type: ClusterIP
+  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  ## Only used when useSeparate=true (separate service).
+  clusterIP: ""
+  ## Custom appProtocol for this port. Used in both modes.
+  appProtocol: ""
+  ## Service annotations. Only used when useSeparate=true (separate service).
+  annotations: {}
+  ## Service labels. Only used when useSeparate=true (separate service).
+  labels: {}
+
+## GRPC API service configuration.
+## By default, GRPC API port is exposed on the main service above.
+## Use useSeparate: true to have a separate service definition.
+serviceGrpc:
   ## Use separate Kubernetes Service for GRPC API endpoints.
   ## Useful for applying different Service configurations (type, annotations, labels),
   ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
-  useSeparateGrpcService: false
+  useSeparate: false
+  ## Service port (forwards to servers.grpc.port, default: 10000)
+  ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
+  port: 10000
+  ## Static NodePort for this port. Used in both modes to set the nodePort field.
+  nodePort: ""
+  ## Service type. When useSeparate=true, this is the service type.
+  ## When useSeparate=false, used to determine if nodePort should be rendered.
+  type: ClusterIP
+  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  ## Only used when useSeparate=true (separate service).
+  clusterIP: ""
+  ## Custom appProtocol for this port. Used in both modes.
+  appProtocol: ""
+  ## Service annotations. Only used when useSeparate=true (separate service).
+  annotations: {}
+  ## Service labels. Only used when useSeparate=true (separate service).
+  labels: {}
+
+## Unidirectional GRPC service configuration.
+## By default, uni GRPC port is exposed on the main service above.
+## Use useSeparate: true to have a separate service definition.
+serviceUniGrpc:
   ## Use separate Kubernetes Service for GRPC unidirectional stream.
   ## Useful for applying different Service configurations (type, annotations, labels),
   ## network policy isolation, or separate LoadBalancer IPs per endpoint type.
-  useSeparateUniGrpcService: false
-
-## Internal service configuration.
-## Note: These settings only apply when service.useSeparateInternalService is true.
-## Otherwise, internal port is exposed on the main service above.
-internalService:
-  ## Service port (forwards to servers.internal.port, default: 9000)
-  port: 9000
-  type: ClusterIP
-  # Static NodePort, if set.
-  nodePort: ""
-  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  clusterIP: ""
-  annotations: {}
-    # prometheus.io/scrape: "true"
-    # prometheus.io/path: "/metrics"
-    # prometheus.io/port: "9000"
-  ## Specify custom appProtocol for a service port.
-  labels: {}
-  appProtocol: ""
-
-## GRPC API service configuration.
-## Note: These settings only apply when service.useSeparateGrpcService is true.
-## Otherwise, GRPC API port is exposed on the main service above.
-grpcService:
-  ## Service port (forwards to servers.grpc.port, default: 10000)
-  port: 10000
-  type: ClusterIP
-  # Static NodePort, if set.
-  nodePort: ""
-  ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
-  clusterIP: ""
-  annotations: {}
-  ## Specify custom appProtocol for a service port.
-  labels: {}
-  appProtocol: ""
-
-## Unidirectional GRPC service configuration.
-## Note: These settings only apply when service.useSeparateUniGrpcService is true.
-## Otherwise, uni GRPC port is exposed on the main service above.
-uniGrpcService:
+  useSeparate: false
   ## Service port (forwards to servers.uniGrpc.port, default: 11000)
+  ## Used in both modes: on main service when useSeparate=false, on separate service when useSeparate=true.
   port: 11000
-  type: ClusterIP
-  # Static NodePort, if set.
+  ## Static NodePort for this port. Used in both modes to set the nodePort field.
   nodePort: ""
+  ## Service type. When useSeparate=true, this is the service type.
+  ## When useSeparate=false, used to determine if nodePort should be rendered.
+  type: ClusterIP
   ## Specify clusterIP for the service. If not specified, Kubernetes will assign one.
+  ## Only used when useSeparate=true (separate service).
   clusterIP: ""
-  annotations: {}
-  ## Specify custom appProtocol for a service port.
-  labels: {}
+  ## Custom appProtocol for this port. Used in both modes.
   appProtocol: ""
+  ## Service annotations. Only used when useSeparate=true (separate service).
+  annotations: {}
+  ## Service labels. Only used when useSeparate=true (separate service).
+  labels: {}
 
 ingress:
   enabled: false

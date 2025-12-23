@@ -253,12 +253,13 @@ For advanced deployments, you can split ports into **separate Services**:
 ```yaml
 service:
   port: 443  # Main service on 443
-  useSeparateInternalService: true   # Creates centrifugo-internal service
-  useSeparateGrpcService: true       # Creates centrifugo-grpc service
-  useSeparateUniGrpcService: true    # Creates centrifugo-uni-grpc service
 
-internalService:
+serviceInternal:
+  useSeparate: true
   port: 443  # Internal service also on 443 (different Service object)
+
+serviceGrpc:
+  useSeparate: true
 ```
 
 **Why separate services?**
@@ -500,7 +501,7 @@ serviceAccount:
 
 The ALB health check configuration above assumes that the Centrifugo internal port (default 9000) is exposed on the same Service targeted by the Ingress.
 
-If you enable separate Services (useSeparateInternalService, useSeparateGrpcService, or useSeparateUniGrpcService) or override ports, the ALB health check must be updated to target the Service and port that exposes the internal /health endpoint. Otherwise, targets will remain unhealthy.
+If you enable separate Services (serviceInternal.useSeparate, serviceGrpc.useSeparate, or serviceUniGrpc.useSeparate) or override ports, the ALB health check must be updated to target the Service and port that exposes the internal /health endpoint. Otherwise, targets will remain unhealthy.
 
 #### GCP GKE Ingress
 
@@ -1185,9 +1186,9 @@ initContainers:
 |-----------|-------------|---------|
 | `service.type` | Service type | `ClusterIP` |
 | `service.port` | External service port | `8000` |
-| `internalService.port` | Internal service port | `9000` |
-| `grpcService.port` | GRPC API service port | `10000` |
-| `uniGrpcService.port` | Uni GRPC service port | `11000` |
+| `serviceInternal.port` | Internal service port | `9000` |
+| `serviceGrpc.port` | GRPC API service port | `10000` |
+| `serviceUniGrpc.port` | Uni GRPC service port | `11000` |
 
 ### Metrics Parameters
 
@@ -1221,13 +1222,20 @@ Version 13 introduces a simplified, modern approach to secret management:
 - `existingSecret` - Reference to chart-managed secret
 - Chart no longer creates a Secret resource
 - `autoscalingTemplate` - Renamed to `autoscaling.customMetrics` for clarity
-- `internalService.probeScheme` - Moved to `servers.internal.scheme` for better organization
+- `service.useSeparateInternalService` - Moved to `serviceInternal.useSeparate`
+- `service.useSeparateGrpcService` - Moved to `serviceGrpc.useSeparate`
+- `service.useSeparateUniGrpcService` - Moved to `serviceUniGrpc.useSeparate`
 
 **Changed:**
 - `envSecret` - Now the primary way to reference secrets (structure simplified)
 - Security contexts - Removed duplication of `runAsUser`/`runAsNonRoot` between pod and container contexts
 - **GRPC API is now opt-in** - The chart no longer passes `--grpc_api.enabled` flag by default. Users must explicitly enable GRPC API in their configuration if needed
-- **Port configuration decoupled** - Centrifugo server ports are now separate from Kubernetes service ports. Service ports (`service.port`, `internalService.port`, etc.) can now be configured independently from server ports (defined in new `servers` section). This allows using the same service port number across different services (e.g., all services can use port 443) since they map to different server ports. See [Service Design](#service-design) for details.
+- **Port configuration decoupled** - Centrifugo server ports are now separate from Kubernetes service ports. Service ports (`service.port`, `serviceInternal.port`, etc.) can now be configured independently from server ports (defined in new `servers` section). This allows using the same service port number across different services (e.g., all services can use port 443) since they map to different server ports. See [Service Design](#service-design) for details.
+- **Service configuration restructured** - Service sections renamed and reorganized for clarity:
+  - `internalService` → `serviceInternal` with `useSeparate` field (previously `service.useSeparateInternalService`)
+  - `grpcService` → `serviceGrpc` with `useSeparate` field (previously `service.useSeparateGrpcService`)
+  - `uniGrpcService` → `serviceUniGrpc` with `useSeparate` field (previously `service.useSeparateUniGrpcService`)
+  - All service-specific configuration (port, type, annotations, labels, etc.) now colocated with the `useSeparate` flag in the same section
 
 **Added:**
 - `servers` section - Explicit configuration for Centrifugo server endpoints (external, internal, grpc, uniGrpc) with extensible properties per server
@@ -1245,8 +1253,8 @@ Version 13 introduces a simplified, modern approach to secret management:
   - Fully configurable `livenessProbe`, `readinessProbe`, `startupProbe`
   - Support for all probe types (httpGet, exec, grpc, tcpSocket)
   - Maintains backward compatibility with default httpGet probes
-- Consistent `clusterIP` support for all services (`service`, `internalService`, `grpcService`, `uniGrpcService`)
-- ServiceMonitor now includes `path: /metrics` and respects `internalService.probeScheme` for HTTPS
+- Consistent `clusterIP` support for all services (`service`, `serviceInternal`, `serviceGrpc`, `serviceUniGrpc`)
+- ServiceMonitor now includes `path: /metrics` and respects `serviceInternal.probeScheme` for HTTPS
 - `revisionHistoryLimit` parameter for Deployment cleanup
 - `podDisruptionBudget.maxUnavailable` option (alternative to `minAvailable`)
 - Default security contexts (`runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`, drop all capabilities)
@@ -1335,6 +1343,45 @@ envSecret:
   # ... add other keys as needed
 ```
 
+**For service configuration:**
+
+If you were using separate services, the configuration structure has changed. Service sections were renamed and the `useSeparate*` flags moved into each service section:
+
+**Before (v12):**
+```yaml
+service:
+  useSeparateInternalService: true  # Flag was here
+  useSeparateGrpcService: false
+
+internalService:  # Old name
+  port: 9000
+  type: ClusterIP
+  annotations: {}
+
+grpcService:  # Old name
+  port: 10000
+  type: ClusterIP
+```
+
+**After (v13):**
+```yaml
+service:
+  # useSeparate flags removed from here
+
+serviceInternal:  # New name (renamed from internalService)
+  useSeparate: true  # Flag moved here
+  port: 9000
+  type: ClusterIP
+  annotations: {}
+
+serviceGrpc:  # New name (renamed from grpcService)
+  useSeparate: false  # Flag moved here
+  port: 10000
+  type: ClusterIP
+```
+
+The same pattern applies to `uniGrpcService` → `serviceUniGrpc`.
+
 **For port configuration:**
 
 If you were using default ports, no action is required. The defaults remain the same (8000, 9000, 10000, 11000).
@@ -1366,7 +1413,7 @@ servers:
 # Kubernetes service ports (external-facing ports, can be different from server ports)
 service:
   port: 8080  # Or any port, e.g., 443
-internalService:
+serviceInternal:
   port: 9090  # Or any port
 ```
 
@@ -1380,8 +1427,9 @@ servers:
 
 service:
   port: 443  # All services can use the same port
-  useSeparateInternalService: true
-internalService:
+
+serviceInternal:
+  useSeparate: true
   port: 443  # Same as main service port (different Service object)
 ```
 

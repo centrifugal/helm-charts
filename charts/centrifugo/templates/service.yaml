@@ -21,47 +21,47 @@ spec:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.servers.external.port }}
       protocol: TCP
+      name: external
       {{- if .Values.service.appProtocol }}
       appProtocol: {{ .Values.service.appProtocol }}
       {{- end }}
-      name: external
       {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
-{{- if not .Values.service.useSeparateInternalService }}
-    - port: {{ .Values.internalService.port }}
+{{- if not .Values.serviceInternal.useSeparate }}
+    - port: {{ .Values.serviceInternal.port }}
       targetPort: {{ .Values.servers.internal.port }}
       protocol: TCP
-      {{- if .Values.internalService.appProtocol }}
-      appProtocol: {{ .Values.internalService.appProtocol }}
-      {{- end }}
       name: internal
-      {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
-      nodePort: {{ .Values.internalService.nodePort }}
+      {{- if .Values.serviceInternal.appProtocol }}
+      appProtocol: {{ .Values.serviceInternal.appProtocol }}
+      {{- end }}
+      {{- if (and (eq .Values.serviceInternal.type "NodePort") (not (empty .Values.serviceInternal.nodePort))) }}
+      nodePort: {{ .Values.serviceInternal.nodePort }}
       {{- end }}
 {{- end }}
-{{- if not .Values.service.useSeparateGrpcService }}
-    - port: {{ .Values.grpcService.port }}
+{{- if not .Values.serviceGrpc.useSeparate }}
+    - port: {{ .Values.serviceGrpc.port }}
       targetPort: {{ .Values.servers.grpc.port }}
       protocol: TCP
-      {{- if .Values.grpcService.appProtocol }}
-      appProtocol: {{ .Values.grpcService.appProtocol }}
-      {{- end }}
       name: grpc
-      {{- if (and (eq .Values.grpcService.type "NodePort") (not (empty .Values.grpcService.nodePort))) }}
-      nodePort: {{ .Values.grpcService.nodePort }}
+      {{- if .Values.serviceGrpc.appProtocol }}
+      appProtocol: {{ .Values.serviceGrpc.appProtocol }}
+      {{- end }}
+      {{- if (and (eq .Values.serviceGrpc.type "NodePort") (not (empty .Values.serviceGrpc.nodePort))) }}
+      nodePort: {{ .Values.serviceGrpc.nodePort }}
       {{- end }}
 {{- end }}
-{{- if not .Values.service.useSeparateUniGrpcService }}
-    - port: {{ .Values.uniGrpcService.port }}
+{{- if not .Values.serviceUniGrpc.useSeparate }}
+    - port: {{ .Values.serviceUniGrpc.port }}
       targetPort: {{ .Values.servers.uniGrpc.port }}
       protocol: TCP
-      {{- if .Values.uniGrpcService.appProtocol }}
-      appProtocol: {{ .Values.uniGrpcService.appProtocol }}
-      {{- end }}
       name: uni-grpc
-      {{- if (and (eq .Values.uniGrpcService.type "NodePort") (not (empty .Values.uniGrpcService.nodePort))) }}
-      nodePort: {{ .Values.uniGrpcService.nodePort }}
+      {{- if .Values.serviceUniGrpc.appProtocol }}
+      appProtocol: {{ .Values.serviceUniGrpc.appProtocol }}
+      {{- end }}
+      {{- if (and (eq .Values.serviceUniGrpc.type "NodePort") (not (empty .Values.serviceUniGrpc.nodePort))) }}
+      nodePort: {{ .Values.serviceUniGrpc.nodePort }}
       {{- end }}
 {{- end }}
   selector:
