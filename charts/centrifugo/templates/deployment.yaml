@@ -85,7 +85,7 @@ spec:
           {{- if .Values.envFrom }}
           envFrom:
             {{- range .Values.envFrom }}
-            {{- tpl (toYaml .) $ | nindent 12 }}
+            - {{- tpl (toYaml .) $ | nindent 14 }}
             {{- end }}
           {{- end }}
           env:
