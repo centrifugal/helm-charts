@@ -84,9 +84,7 @@ spec:
             - "{{ .Values.uniGrpcService.port }}"
           {{- if .Values.envFrom }}
           envFrom:
-            {{- range .Values.envFrom }}
-            {{- tpl (toYaml .) $ | nindent 12 }}
-            {{- end }}
+            {{- tpl (toYaml .Values.envFrom) $ | nindent 12 }}
           {{- end }}
           env:
             - name: CENTRIFUGO_ADMIN_PASSWORD
