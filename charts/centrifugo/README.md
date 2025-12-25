@@ -35,6 +35,7 @@ For Centrifugo configuration options, see the [official documentation](https://c
 - [Using with HashiCorp Vault](#using-with-hashicorp-vault)
 - [Scale with Redis Engine](#scale-with-redis-engine)
 - [With NATS Broker](#with-nats-broker)
+- [Production Deployment Tutorials](#production-deployment-tutorials)
 - [Using initContainers](#using-initcontainers)
 - [Parameters](#parameters)
 - [Upgrading](#upgrading)
@@ -1077,6 +1078,24 @@ helm install centrifugo centrifugal/centrifugo \
   --set config.broker.nats.url=nats://nats:4222 \
   --set replicaCount=3
 ```
+
+## Production Deployment Tutorials
+
+For comprehensive step-by-step guides on deploying Centrifugo to production Kubernetes clusters, see the [Installation Tutorial](tutorial.md).
+
+The tutorial includes detailed instructions for:
+
+- **Google Kubernetes Engine (GKE)**: Complete setup with GKE Ingress, Google-managed certificates, and Cloud Load Balancer
+- **Amazon EKS**: Complete setup with AWS Load Balancer Controller, ALB Ingress, and ACM certificates
+
+Both guides cover:
+- Cluster creation and configuration
+- High availability setup with multiple replicas
+- Redis installation for horizontal scaling
+- Proper secret management
+- TLS/SSL configuration
+- Monitoring with Prometheus
+- Troubleshooting common issues
 
 ## Using initContainers
 
