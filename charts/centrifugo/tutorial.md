@@ -482,7 +482,7 @@ kubectl get secret prometheus-grafana -o jsonpath="{.data.admin-password}" | bas
 kubectl port-forward svc/prometheus-grafana 3000:80
 ```
 
-Open http://localhost:3000 (username: `admin`, password from above).
+Open <http://localhost:3000> (username: `admin`, password from above).
 
 ---
 
@@ -945,7 +945,7 @@ kubectl get secret prometheus-grafana -o jsonpath="{.data.admin-password}" | bas
 kubectl port-forward svc/prometheus-grafana 3000:80
 ```
 
-Open http://localhost:3000 (username: `admin`, password from above).
+Open <http://localhost:3000> (username: `admin`, password from above).
 
 ---
 
