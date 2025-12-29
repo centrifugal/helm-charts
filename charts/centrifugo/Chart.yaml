@@ -3,7 +3,7 @@ name: centrifugo
 description: Centrifugo is a scalable real-time messaging server in language-agnostic way
 type: application
 version: 13.0.0
-appVersion: 6.5.2
+appVersion: 6.6.0
 home: https://centrifugal.dev
 icon: https://centrifugal.dev/img/favicon.png
 sources:
