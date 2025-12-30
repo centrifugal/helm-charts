@@ -1,10 +1,16 @@
-name: Lint and Test Charts
+name: Helm Chart CI
 
 on: [push, pull_request]
 
 jobs:
-  lint-test:
+  lint-and-install:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Test minimum supported version and latest stable
+        k8s-version:
+          - v1.21.14  # Test on minimum supported
+          - v1.35.0   # And modern one
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -16,11 +22,12 @@ jobs:
         uses: helm/chart-testing-action@v2.7.0
 
       - name: Run chart-testing (lint)
-        id: lint
         run: ct lint --config ct.yaml
 
-      - name: Create kind cluster
+      - name: Create kind cluster (Kubernetes ${{ matrix.k8s-version }})
         uses: helm/kind-action@v1.12.0
+        with:
+          node_image: kindest/node:${{ matrix.k8s-version }}
 
       - name: Run chart-testing (install)
         run: ct install --config ct.yaml

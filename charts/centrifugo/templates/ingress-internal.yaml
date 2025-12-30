@@ -1,10 +1,10 @@
 {{- if .Values.ingressInternal.enabled }}
 {{- $fullName := include "centrifugo.fullname" . }}
 {{- $namespace := include "centrifugo.namespace" . }}
-{{- $svcPort := .Values.internalService.port }}
-{{- if or ( gt .Capabilities.KubeVersion.Major "1" ) ( ge .Capabilities.KubeVersion.Minor "19" ) }}
+{{- $svcPort := .Values.serviceInternal.port }}
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1" }}
 apiVersion: networking.k8s.io/v1
-{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion }}
+{{- else }}
 apiVersion: networking.k8s.io/v1beta1
 {{- end }}
 kind: Ingress
@@ -41,13 +41,13 @@ spec:
         paths:
           {{- range .paths }}
           - path: {{ . }}
-            {{- if or ( gt $.Capabilities.KubeVersion.Major "1" ) ( ge $.Capabilities.KubeVersion.Minor "19" ) }}
+            {{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1" }}
             pathType: {{ $.Values.ingressInternal.pathType }}
             {{- end }}
             backend:
-              {{- if or ( gt $.Capabilities.KubeVersion.Major "1" ) ( ge $.Capabilities.KubeVersion.Minor "19" ) }}
+              {{- if $.Capabilities.APIVersions.Has "networking.k8s.io/v1" }}
               service:
-                {{- if $.Values.service.useSeparateInternalService }}
+                {{- if $.Values.serviceInternal.enabled }}
                 name: {{ $fullName }}-internal
                 {{- else }}
                 name: {{ $fullName }}
@@ -55,7 +55,7 @@ spec:
                 port:
                   number: {{ $svcPort }}
               {{- else }}
-              {{- if $.Values.service.useSeparateInternalService }}
+              {{- if $.Values.serviceInternal.enabled }}
               serviceName: {{ $fullName }}-internal
               {{- else }}
               serviceName: {{ $fullName }}

@@ -1,4 +1,4 @@
-{{- if .Values.service.useSeparateInternalService -}}
+{{- if .Values.serviceInternal.useSeparate -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -6,25 +6,28 @@ metadata:
   namespace: {{ include "centrifugo.namespace" . }}
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
-    {{- with .Values.internalService.labels }}
+    {{- with .Values.serviceInternal.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- with .Values.internalService.annotations }}
+  {{- with .Values.serviceInternal.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.internalService.type }}
+  type: {{ .Values.serviceInternal.type }}
+  {{- if and (eq .Values.serviceInternal.type "ClusterIP") .Values.serviceInternal.clusterIP }}
+  clusterIP: {{ .Values.serviceInternal.clusterIP }}
+  {{- end }}
   ports:
-    - port: {{ .Values.internalService.port }}
-      targetPort: internal
+    - port: {{ .Values.serviceInternal.port }}
+      targetPort: {{ .Values.servers.internal.port }}
       protocol: TCP
-      {{- if .Values.internalService.appProtocol }}
-      appProtocol: {{ .Values.internalService.appProtocol }}
+      {{- if .Values.serviceInternal.appProtocol }}
+      appProtocol: {{ .Values.serviceInternal.appProtocol }}
       {{- end }}
       name: internal
-      {{- if (and (eq .Values.internalService.type "NodePort") (not (empty .Values.internalService.nodePort))) }}
-      nodePort: {{ .Values.internalService.nodePort }}
+      {{- if (and (eq .Values.serviceInternal.type "NodePort") (not (empty .Values.serviceInternal.nodePort))) }}
+      nodePort: {{ .Values.serviceInternal.nodePort }}
       {{- end }}
   selector:
     {{- include "centrifugo.selectorLabels" . | nindent 4 }}

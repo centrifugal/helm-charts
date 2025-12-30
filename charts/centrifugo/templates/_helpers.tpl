@@ -41,6 +41,8 @@ helm.sh/chart: {{ include "centrifugo.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/part-of: centrifugo
+app.kubernetes.io/component: server
 {{- end }}
 
 {{/*
@@ -98,24 +100,17 @@ imagePullSecrets:
 {{- range .Values.global.imagePullSecrets }}
   - name: {{ . }}
 {{- end }}
-{{- else if .Values.image.pullSecrets}}
+{{- else if .Values.imagePullSecrets}}
 imagePullSecrets:
-{{- range .Values.image.pullSecrets }}
+{{- range .Values.imagePullSecrets }}
   - name: {{ . }}
 {{- end }}
 {{- end -}}
-{{- else if .Values.image.pullSecrets }}
+{{- else if .Values.imagePullSecrets }}
 imagePullSecrets:
-{{- range .Values.image.pullSecrets }}
+{{- range .Values.imagePullSecrets }}
   - name: {{ . }}
 {{- end }}
 {{- end -}}
 {{- end -}}
 
-{{- define "centrifugo.secretName" -}}
-{{- if .Values.existingSecret -}}
-    {{- printf "%s" (tpl .Values.existingSecret $) -}}
-{{- else -}}
-    {{- printf "%s" (include "centrifugo.fullname" .) -}}
-{{- end -}}
-{{- end -}}

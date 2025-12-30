@@ -1,8 +1,8 @@
-{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled }}
+{{- if .Values.metrics.serviceMonitor.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ template "centrifugo.fullname" . }}
+  name: {{ include "centrifugo.fullname" . }}
   {{- if .Values.metrics.serviceMonitor.namespace }}
   namespace: {{ .Values.metrics.serviceMonitor.namespace }}
   {{- else }}
@@ -22,6 +22,10 @@ metadata:
 spec:
   endpoints:
     - port: internal
+      path: /metrics
+      {{- if eq .Values.servers.internal.scheme "HTTPS" }}
+      scheme: https
+      {{- end }}
       {{- if .Values.metrics.serviceMonitor.interval }}
       interval: {{ .Values.metrics.serviceMonitor.interval }}
       {{- end }}
@@ -32,12 +36,12 @@ spec:
       honorLabels: {{ .Values.metrics.serviceMonitor.honorLabels }}
       {{- end }}
       {{- if .Values.metrics.serviceMonitor.relabellings }}
-      metricRelabelings: {{- toYaml .Values.metrics.serviceMonitor.relabellings | nindent 6 }}
-     {{- end }}
+      metricRelabelings: {{- toYaml .Values.metrics.serviceMonitor.relabellings | nindent 8 }}
+      {{- end }}
   selector:
     matchLabels:
       {{- include "centrifugo.selectorLabels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
-      - {{ .Release.Namespace }}
+      - {{ include "centrifugo.namespace" . }}
 {{- end -}}

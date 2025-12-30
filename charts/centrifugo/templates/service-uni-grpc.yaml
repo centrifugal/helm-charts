@@ -1,4 +1,4 @@
-{{- if .Values.service.useSeparateUniGrpcService -}}
+{{- if .Values.serviceUniGrpc.useSeparate -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -6,25 +6,28 @@ metadata:
   namespace: {{ include "centrifugo.namespace" . }}
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
-    {{- with .Values.uniGrpcService.labels }}
+    {{- with .Values.serviceUniGrpc.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- with .Values.uniGrpcService.annotations }}
+  {{- with .Values.serviceUniGrpc.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.uniGrpcService.type }}
+  type: {{ .Values.serviceUniGrpc.type }}
+  {{- if and (eq .Values.serviceUniGrpc.type "ClusterIP") .Values.serviceUniGrpc.clusterIP }}
+  clusterIP: {{ .Values.serviceUniGrpc.clusterIP }}
+  {{- end }}
   ports:
-    - port: {{ .Values.uniGrpcService.port }}
-      targetPort: uni-grpc
+    - port: {{ .Values.serviceUniGrpc.port }}
+      targetPort: {{ .Values.servers.uniGrpc.port }}
       protocol: TCP
-      {{- if .Values.uniGrpcService.appProtocol }}
-      appProtocol: {{ .Values.uniGrpcService.appProtocol }}
+      {{- if .Values.serviceUniGrpc.appProtocol }}
+      appProtocol: {{ .Values.serviceUniGrpc.appProtocol }}
       {{- end }}
       name: uni-grpc
-      {{- if (and (eq .Values.uniGrpcService.type "NodePort") (not (empty .Values.uniGrpcService.nodePort))) }}
-      nodePort: {{ .Values.uniGrpcService.nodePort }}
+      {{- if (and (eq .Values.serviceUniGrpc.type "NodePort") (not (empty .Values.serviceUniGrpc.nodePort))) }}
+      nodePort: {{ .Values.serviceUniGrpc.nodePort }}
       {{- end }}
   selector:
     {{- include "centrifugo.selectorLabels" . | nindent 4 }}

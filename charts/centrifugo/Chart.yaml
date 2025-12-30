@@ -1,11 +1,20 @@
-apiVersion: v1
+apiVersion: v2
 name: centrifugo
 description: Centrifugo is a scalable real-time messaging server in language-agnostic way
-version: 12.7.5
+type: application
+version: 13.0.0
 appVersion: 6.6.0
 home: https://centrifugal.dev
 icon: https://centrifugal.dev/img/favicon.png
+sources:
+  - https://github.com/centrifugal/centrifugo
+  - https://github.com/centrifugal/helm-charts
+keywords:
+  - centrifugo
+  - websocket
+  - realtime
+  - messaging
+  - pubsub
 maintainers:
   - name: FZambia
     email: frvzmb@gmail.com
-engine: gotpl

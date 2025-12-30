@@ -18,7 +18,7 @@ spec:
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
-  {{- with .Values.autoscalingTemplate }}
+  {{- with .Values.autoscaling.customMetrics }}
   {{- toYaml . | nindent 2 }}
   {{- end }}
   {{- if .Values.autoscaling.cpu.enabled }}

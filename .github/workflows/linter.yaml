@@ -1,22 +1,21 @@
 name: Lint Code Base
 
-# Documentation:
-# https://help.github.com/en/articles/workflow-syntax-for-github-actions
-
 on: [push, pull_request]
 
 jobs:
-  build:
-    name: Lint Code Base
+  super-linter:
+    name: Lint Markdown and EditorConfig
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
-      - name: Lint Code Base
-        uses: docker://github/super-linter:v3.12.0
+        with:
+          fetch-depth: 0
+      - name: Run Super-Linter
+        uses: super-linter/super-linter@v7
         env:
           VALIDATE_ALL_CODEBASE: false
-          VALIDATE_KUBERNETES_KUBEVAL: false
-          VALIDATE_YAML: false
+          VALIDATE_MARKDOWN: true
+          VALIDATE_EDITORCONFIG: true
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
