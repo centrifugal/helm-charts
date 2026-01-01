@@ -1,0 +1,39 @@
+{{- range .Values.workers }}
+{{- $worker := . }}
+{{- $root := $ }}
+{{- if and $worker.service $worker.service.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}
+  namespace: {{ include "centrifugo.namespace" $root }}
+  labels:
+    {{- include "centrifugo.worker.labels" (dict "root" $root "worker" $worker) | nindent 4 }}
+    {{- with $worker.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $worker.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $worker.service.type }}
+  {{- if and (eq $worker.service.type "ClusterIP") $worker.service.clusterIP }}
+  clusterIP: {{ $worker.service.clusterIP }}
+  {{- end }}
+  ports:
+    - port: {{ default $root.Values.service.port $worker.service.port }}
+      targetPort: {{ $root.Values.servers.external.port }}
+      protocol: TCP
+      name: external
+      {{- if $worker.service.appProtocol }}
+      appProtocol: {{ $worker.service.appProtocol }}
+      {{- end }}
+      {{- if (and (eq $worker.service.type "NodePort") (not (empty $worker.service.nodePort))) }}
+      nodePort: {{ $worker.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "centrifugo.worker.selectorLabels" (dict "root" $root "worker" $worker) | nindent 4 }}
+{{- end }}
+{{- end }}

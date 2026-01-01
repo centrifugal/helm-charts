@@ -1,0 +1,264 @@
+{{- range .Values.workers }}
+{{- $worker := . }}
+{{- $root := $ }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}
+  namespace: {{ include "centrifugo.namespace" $root }}
+  labels:
+    {{- include "centrifugo.worker.labels" (dict "root" $root "worker" $worker) | nindent 4 }}
+  {{- with (default $root.Values.annotations $worker.annotations) }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not (default $root.Values.autoscaling $worker.autoscaling).enabled }}
+  replicas: {{ default $root.Values.replicaCount $worker.replicaCount }}
+  {{- end }}
+  {{- with (default $root.Values.revisionHistoryLimit $worker.revisionHistoryLimit) }}
+  revisionHistoryLimit: {{ . }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "centrifugo.worker.selectorLabels" (dict "root" $root "worker" $worker) | nindent 6 }}
+  {{- if (default $root.Values.deploymentStrategy $worker.deploymentStrategy) }}
+  strategy:
+    {{- toYaml (default $root.Values.deploymentStrategy $worker.deploymentStrategy) | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $root.Template.BasePath "/worker-configmap.yaml") $root | sha256sum }}
+        {{- with (default $root.Values.podAnnotations $worker.podAnnotations) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "centrifugo.worker.selectorLabels" (dict "root" $root "worker" $worker) | nindent 8 }}
+        {{- with (default $root.Values.podLabels $worker.podLabels) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with (default $root.Values.topologySpreadConstraints $worker.topologySpreadConstraints) }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if (default $root.Values.priorityClassName $worker.priorityClassName) }}
+      priorityClassName: {{ default $root.Values.priorityClassName $worker.priorityClassName | quote }}
+      {{- end }}
+      {{- include "centrifugo.imagePullSecrets" $root | nindent 6 }}
+      serviceAccountName: {{ include "centrifugo.serviceAccountName" $root }}
+      securityContext:
+        {{- toYaml $root.Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ default $root.Values.terminationGracePeriodSeconds $worker.terminationGracePeriodSeconds }}
+      {{- with (default $root.Values.hostAliases $worker.hostAliases) }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if (default $root.Values.runtimeClassName $worker.runtimeClassName) }}
+      runtimeClassName: {{ default $root.Values.runtimeClassName $worker.runtimeClassName }}
+      {{- end }}
+      {{- if (default $root.Values.schedulerName $worker.schedulerName) }}
+      schedulerName: {{ default $root.Values.schedulerName $worker.schedulerName }}
+      {{- end }}
+      {{- if hasKey $root.Values "enableServiceLinks" }}
+      enableServiceLinks: {{ $root.Values.enableServiceLinks }}
+      {{- end }}
+      {{- if (default $root.Values.shareProcessNamespace $worker.shareProcessNamespace) }}
+      shareProcessNamespace: {{ default $root.Values.shareProcessNamespace $worker.shareProcessNamespace }}
+      {{- end }}
+      {{- with (default $root.Values.overhead $worker.overhead) }}
+      overhead:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: {{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}-config
+          configMap:
+            name: {{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}-config
+        {{- with $root.Values.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with $worker.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with (default $root.Values.initContainers $worker.initContainers) }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $root.Chart.Name }}
+          securityContext:
+            {{- toYaml $root.Values.securityContext | nindent 12 }}
+          image: {{ include "centrifugo.image" $root }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          {{- if (default $root.Values.terminationMessagePolicy $worker.terminationMessagePolicy) }}
+          terminationMessagePolicy: {{ default $root.Values.terminationMessagePolicy $worker.terminationMessagePolicy }}
+          {{- end }}
+          command:
+            - centrifugo
+          args:
+            - --health.enabled
+            - --prometheus.enabled
+            - --http_server.port
+            - "{{ $root.Values.servers.external.port }}"
+            - --http_server.internal_port
+            - "{{ $root.Values.servers.internal.port }}"
+            - --grpc_api.port
+            - "{{ $root.Values.servers.grpc.port }}"
+            - --uni_grpc.port
+            - "{{ $root.Values.servers.uniGrpc.port }}"
+          {{- $existingSecret := default $root.Values.existingSecret $worker.existingSecret }}
+          {{- $mainEnvFrom := default list $root.Values.envFrom }}
+          {{- $workerEnvFrom := default list $worker.envFrom }}
+          {{- $envFromMap := dict }}
+          {{- range $workerEnvFrom }}
+          {{- $key := "" }}
+          {{- if .configMapRef }}
+          {{- $key = printf "configMap-%s" .configMapRef.name }}
+          {{- else if .secretRef }}
+          {{- $key = printf "secret-%s" .secretRef.name }}
+          {{- end }}
+          {{- if $key }}
+          {{- $_ := set $envFromMap $key . }}
+          {{- end }}
+          {{- end }}
+          {{- range $mainEnvFrom }}
+          {{- $key := "" }}
+          {{- if .configMapRef }}
+          {{- $key = printf "configMap-%s" .configMapRef.name }}
+          {{- else if .secretRef }}
+          {{- $key = printf "secret-%s" .secretRef.name }}
+          {{- end }}
+          {{- if and $key (not (hasKey $envFromMap $key)) }}
+          {{- $_ := set $envFromMap $key . }}
+          {{- end }}
+          {{- end }}
+          {{- if or $existingSecret $envFromMap }}
+          envFrom:
+            {{- if $existingSecret }}
+            - secretRef:
+                name: {{ $existingSecret }}
+            {{- end }}
+            {{- range $key, $value := $envFromMap }}
+            {{- if $value.configMapRef }}
+            - configMapRef:
+                name: {{ $value.configMapRef.name }}
+                {{- if $value.configMapRef.optional }}
+                optional: {{ $value.configMapRef.optional }}
+                {{- end }}
+            {{- else if $value.secretRef }}
+            - secretRef:
+                name: {{ $value.secretRef.name }}
+                {{- if $value.secretRef.optional }}
+                optional: {{ $value.secretRef.optional }}
+                {{- end }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- $mergedEnv := merge (default dict $worker.env) (default dict $root.Values.env) }}
+          {{- $mainSecrets := default list $root.Values.envSecret }}
+          {{- $workerSecrets := default list $worker.envSecret }}
+          {{- $workerSecretNames := dict }}
+          {{- range $workerSecrets }}
+          {{- $_ := set $workerSecretNames .name true }}
+          {{- end }}
+          {{- if or $mergedEnv $mainSecrets $workerSecrets }}
+          env:
+            {{- range $key, $value := $mergedEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $mainSecrets }}
+            {{- if not (hasKey $workerSecretNames .name) }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  {{- toYaml .secretKeyRef | nindent 18 }}
+            {{- end }}
+            {{- end }}
+            {{- range $workerSecrets }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  {{- toYaml .secretKeyRef | nindent 18 }}
+            {{- end }}
+          {{- end }}
+          volumeMounts:
+            - name: "{{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}-config"
+              mountPath: "/centrifugo"
+              readOnly: true
+            {{- with $root.Values.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with $worker.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: external
+              containerPort: {{ $root.Values.servers.external.port }}
+            - name: internal
+              containerPort: {{ $root.Values.servers.internal.port }}
+            - name: grpc
+              containerPort: {{ $root.Values.servers.grpc.port }}
+            - name: uni-grpc
+              containerPort: {{ $root.Values.servers.uniGrpc.port }}
+          {{- if (default $root.Values.livenessProbe $worker.livenessProbe) }}
+          livenessProbe:
+            {{- toYaml (default $root.Values.livenessProbe $worker.livenessProbe) | nindent 12 }}
+          {{- else }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ $root.Values.servers.internal.port }}
+              scheme: {{ $root.Values.servers.internal.scheme }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          {{- end }}
+          {{- if (default $root.Values.readinessProbe $worker.readinessProbe) }}
+          readinessProbe:
+            {{- toYaml (default $root.Values.readinessProbe $worker.readinessProbe) | nindent 12 }}
+          {{- else }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ $root.Values.servers.internal.port }}
+              scheme: {{ $root.Values.servers.internal.scheme }}
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          {{- end }}
+          {{- with (default $root.Values.startupProbe $worker.startupProbe) }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml (default $root.Values.resources $worker.resources) | nindent 12 }}
+          {{- with (default $root.Values.lifecycle $worker.lifecycle) }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- if (default $root.Values.extraContainers $worker.extraContainers) }}
+        {{- toYaml (default $root.Values.extraContainers $worker.extraContainers) | nindent 8 }}
+      {{- end }}
+      {{- with (default $root.Values.nodeSelector $worker.nodeSelector) }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (default $root.Values.affinity $worker.affinity) }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (default $root.Values.tolerations $worker.tolerations) }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if (default $root.Values.dnsPolicy $worker.dnsPolicy) }}
+      dnsPolicy: {{ default $root.Values.dnsPolicy $worker.dnsPolicy }}
+      {{- end }}
+      {{- if (default $root.Values.dnsConfig $worker.dnsConfig) }}
+      dnsConfig:
+        {{- with (default $root.Values.dnsConfig $worker.dnsConfig) }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}

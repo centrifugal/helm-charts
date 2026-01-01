@@ -18,6 +18,7 @@ For Centrifugo configuration options, see the [official documentation](https://c
   - [Architecture](#architecture)
   - [Service Design](#service-design)
   - [Scaling](#scaling)
+  - [Worker Deployments (Multi-Role Setup)](#worker-deployments-multi-role-setup)
   - [Ingress for Public Access](#ingress-for-public-access)
     - [Full NGINX Ingress Example (Minikube)](#full-nginx-ingress-example-minikube)
     - [Full HAProxy Ingress Example (Minikube)](#full-haproxy-ingress-example-minikube)
@@ -292,6 +293,253 @@ helm install centrifugo centrifugal/centrifugo \
   --set config.broker.nats.url=nats://nats:4222 \
   --set replicaCount=3
 ```
+
+### Worker Deployments (Multi-Role Setup)
+
+For advanced use cases, you can deploy Centrifugo with different node roles within the same Helm release. This allows you to:
+
+- Separate client-facing nodes from backend processing nodes
+- Run specialized workers for data ingestion or push notification processing
+- Scale different workloads independently with different resource allocations
+
+**Requirements:**
+- Redis or NATS engine must be configured for multi-pod deployments
+- Centrifugo will set `node.role` config, visible in metrics and web UI
+
+#### Example: Separate Workers for Kafka Consumers
+
+A common pattern is to run Kafka consumers in dedicated worker deployments, isolated from client-facing nodes:
+
+```yaml
+# Main deployment - handles client connections ONLY (no consumers)
+replicaCount: 3
+config:
+  engine:
+    type: redis
+    redis:
+      address: redis://redis:6379
+  admin:
+    enabled: true
+  node:
+    role: default  # When Centrifugo supports node.role
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Worker deployment - runs Kafka consumers
+workers:
+  - name: kafka-consumers
+    replicaCount: 3
+    config:
+      node:
+        role: kafka-consumers  # Visible in Centrifugo metrics and web UI
+      # Only workers have consumers configured
+      consumers:
+        - name: user-notifications
+          enabled: true
+          type: kafka
+          kafka:
+            brokers:
+              - kafka-1.example.com:9092
+              - kafka-2.example.com:9092
+              - kafka-3.example.com:9092
+            topics:
+              - user-events
+            consumer_group: centrifugo-notifications
+            max_poll_records: 100
+            fetch_max_wait: 500ms
+            partition_queue_max_size: 1000
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+      cpu:
+        enabled: true
+        targetCPUUtilizationPercentage: 70
+      memory:
+        enabled: true
+        targetMemoryUtilizationPercentage: 80
+```
+
+This creates:
+- **Main deployment** `centrifugo`: 3 replicas handling client WebSocket/HTTP connections
+- **Worker deployment** `centrifugo-kafka-consumers`: 3-10 replicas processing Kafka events
+
+**Benefits:**
+- Client connections unaffected by Kafka consumer load
+- Scale consumers independently based on Kafka lag
+- Isolate failures - consumer issues don't impact client connections
+- Different resource allocation per workload type
+
+#### Configuration Inheritance
+
+Workers inherit all configuration from the main deployment by default. Override only what differs:
+
+```yaml
+config:
+  engine:
+    type: redis
+    redis:
+      address: redis://redis:6379
+  admin:
+    enabled: true
+  log_level: info
+  allowed_origins:
+    - https://example.com
+
+workers:
+  - name: api-worker
+    config:
+      node:
+        role: api
+      log_level: debug  # Override: more verbose logging for API worker
+      # Inherits: engine, admin, allowed_origins from main config
+      # Add: consumers (only in worker)
+      consumers:
+        - name: api-events
+          enabled: true
+          type: kafka
+          kafka:
+            brokers: ["kafka:9092"]
+            topics: ["api-events"]
+```
+
+**Key points:**
+- Workers automatically get `engine`, `admin`, `allowed_origins` from main config
+- Workers override `log_level` to `debug` for more verbose logging
+- Workers add `consumers` configuration (not in main config)
+- Deep merge: `config.node.role` is added without affecting other settings
+
+#### Environment Variables and Secrets Inheritance
+
+Workers inherit all environment variables and secrets from the main deployment, with the ability to override or extend them:
+
+**Inheritance behavior:**
+
+| Setting | Inheritance | Override | Deduplication |
+|---------|-------------|----------|---------------|
+| `existingSecret` | ✅ Inherited | ✅ Worker can override | N/A (single value) |
+| `env` | ✅ Inherited | ✅ Worker values override main | ✅ No duplicates |
+| `envSecret` | ✅ Inherited | ✅ Worker secrets override by name | ✅ No duplicates |
+| `envFrom` | ✅ Inherited | ✅ Worker entries override by type+name | ✅ No duplicates |
+
+**Example:**
+
+```yaml
+# Main deployment
+existingSecret: "centrifugo-secrets"  # Shared base secrets
+env:
+  LOG_LEVEL: info
+  ADMIN_ENABLED: "true"
+envSecret:
+  - name: ADMIN_PASSWORD
+    secretKeyRef:
+      name: main-secrets
+      key: admin-password
+  - name: API_TOKEN
+    secretKeyRef:
+      name: main-secrets
+      key: api-token
+envFrom:
+  - configMapRef:
+      name: shared-config
+  - secretRef:
+      name: shared-secrets
+
+# Worker deployment
+workers:
+  - name: kafka-consumers
+    existingSecret: "kafka-secrets"  # Override: use different base secret
+    env:
+      LOG_LEVEL: debug              # Override: more verbose logging
+      KAFKA_BROKERS: "kafka:9092"   # Add: worker-specific variable
+    envSecret:
+      - name: ADMIN_PASSWORD        # Override: use different secret source
+        secretKeyRef:
+          name: worker-secrets
+          key: worker-admin-password
+      - name: KAFKA_PASSWORD        # Add: worker-specific secret
+        secretKeyRef:
+          name: kafka-secrets
+          key: password
+    envFrom:
+      - configMapRef:
+          name: shared-config       # Deduplicated (already in main)
+      - configMapRef:
+          name: kafka-config        # Add: worker-specific config
+```
+
+**Worker gets:**
+- `existingSecret`: `kafka-secrets` (overridden from main)
+- `env`:
+  - `LOG_LEVEL=debug` (overridden)
+  - `ADMIN_ENABLED=true` (inherited)
+  - `KAFKA_BROKERS=kafka:9092` (worker-specific)
+- `envSecret`:
+  - `ADMIN_PASSWORD` from `worker-secrets` (overridden)
+  - `API_TOKEN` from `main-secrets` (inherited)
+  - `KAFKA_PASSWORD` from `kafka-secrets` (worker-specific)
+- `envFrom`:
+  - `shared-config` (deduplicated, no duplicate)
+  - `shared-secrets` (inherited from main)
+  - `kafka-config` (worker-specific)
+
+**Key points:**
+- Workers inherit all environment variables and secrets by default
+- Worker values take precedence when there are conflicts
+- No duplicate entries in manifests (clean YAML output)
+- Use `existingSecret` override for workers requiring completely different base secrets
+- Use `envSecret` for adding worker-specific credentials (Kafka passwords, etc.)
+- Use `envFrom` for bulk configuration without duplicating shared configs
+
+#### Worker Services and Ingress
+
+By default, workers use the main service. Optionally create dedicated services or ingress:
+
+```yaml
+workers:
+  - name: api-worker
+    config:
+      node:
+        role: api
+    # Optional dedicated service
+    service:
+      enabled: true
+      type: ClusterIP
+      port: 8000
+    # Optional dedicated ingress (rare for workers)
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      hosts:
+        - host: api-worker.example.com
+          paths:
+            - /
+```
+
+#### Monitoring Worker Roles
+
+When Centrifugo adds native support for `node.role` config, metrics will include a `role` label based on the configured role. The ServiceMonitor automatically discovers all pods (main + workers):
+
+```promql
+# Query metrics for specific role (when Centrifugo supports node.role)
+centrifugo_node_num_clients{role="default"}     # Main deployment (no role set)
+centrifugo_node_num_clients{role="ingestion"}   # Worker with node.role=ingestion
+centrifugo_node_num_clients{role="notifications"}  # Worker with node.role=notifications
+```
+
+All worker configuration options are available in [values.yaml](values.yaml) under the `workers` section.
 
 ### Ingress for Public Access
 

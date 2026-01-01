@@ -1,0 +1,16 @@
+{{- range .Values.workers }}
+{{- $worker := . }}
+{{- $root := $ }}
+{{- $mergedConfig := mustMergeOverwrite (deepCopy $root.Values.config) (default dict $worker.config) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}-config
+  namespace: {{ include "centrifugo.namespace" $root }}
+  labels:
+    {{- include "centrifugo.worker.labels" (dict "root" $root "worker" $worker) | nindent 4 }}
+data:
+  config.json: |-
+    {{- toJson $mergedConfig | nindent 4 }}
+{{- end }}

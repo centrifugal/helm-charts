@@ -114,3 +114,50 @@ imagePullSecrets:
 {{- end -}}
 {{- end -}}
 
+{{/*
+Worker deployment full name
+Usage: {{ include "centrifugo.worker.fullname" (dict "root" . "worker" $worker) }}
+*/}}
+{{- define "centrifugo.worker.fullname" -}}
+{{- printf "%s-%s" (include "centrifugo.fullname" .root) .worker.name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Worker component label value
+Usage: {{ include "centrifugo.worker.component" $worker }}
+*/}}
+{{- define "centrifugo.worker.component" -}}
+{{- printf "worker-%s" .name -}}
+{{- end -}}
+
+{{/*
+Worker selector labels (includes component for pod targeting)
+Usage: {{ include "centrifugo.worker.selectorLabels" (dict "root" . "worker" $worker) }}
+*/}}
+{{- define "centrifugo.worker.selectorLabels" -}}
+{{ include "centrifugo.selectorLabels" .root }}
+app.kubernetes.io/component: {{ include "centrifugo.worker.component" .worker }}
+{{- end -}}
+
+{{/*
+Worker labels (full set including version, managed-by, etc.)
+Usage: {{ include "centrifugo.worker.labels" (dict "root" . "worker" $worker) }}
+*/}}
+{{- define "centrifugo.worker.labels" -}}
+helm.sh/chart: {{ include "centrifugo.chart" .root }}
+{{ include "centrifugo.worker.selectorLabels" . }}
+{{- if .root.Chart.AppVersion }}
+app.kubernetes.io/version: {{ .root.Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .root.Release.Service }}
+app.kubernetes.io/part-of: centrifugo
+{{- end -}}
+
+{{/*
+Main deployment selector labels (includes component for pod targeting)
+Usage: {{ include "centrifugo.main.selectorLabels" . }}
+*/}}
+{{- define "centrifugo.main.selectorLabels" -}}
+{{ include "centrifugo.selectorLabels" . }}
+app.kubernetes.io/component: server
+{{- end -}}

@@ -1,0 +1,58 @@
+{{- range .Values.workers }}
+{{- $worker := . }}
+{{- $root := $ }}
+{{- $autoscaling := default $root.Values.autoscaling $worker.autoscaling }}
+{{- if $autoscaling.enabled }}
+---
+{{- if $root.Capabilities.APIVersions.Has "autoscaling/v2" }}
+apiVersion: "autoscaling/v2"
+{{- else }}
+apiVersion: "autoscaling/v2beta1"
+{{- end }}
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}
+  namespace: {{ include "centrifugo.namespace" $root }}
+  labels:
+    {{- include "centrifugo.worker.labels" (dict "root" $root "worker" $worker) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}
+  minReplicas: {{ $autoscaling.minReplicas }}
+  maxReplicas: {{ $autoscaling.maxReplicas }}
+  metrics:
+  {{- with $autoscaling.customMetrics }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- if and $autoscaling.cpu $autoscaling.cpu.enabled }}
+  - type: Resource
+    resource:
+      name: cpu
+      {{- if $root.Capabilities.APIVersions.Has "autoscaling/v2" }}
+      target:
+        type: Utilization
+        averageUtilization: {{ $autoscaling.cpu.targetCPUUtilizationPercentage }}
+      {{- else }}
+      targetAverageUtilization: {{ $autoscaling.cpu.targetCPUUtilizationPercentage }}
+      {{- end }}
+  {{- end }}
+  {{- if and $autoscaling.memory $autoscaling.memory.enabled }}
+  - type: Resource
+    resource:
+      name: memory
+      {{- if $root.Capabilities.APIVersions.Has "autoscaling/v2" }}
+      target:
+        type: Utilization
+        averageUtilization: {{ $autoscaling.memory.targetMemoryUtilizationPercentage }}
+      {{- else }}
+      targetAverageUtilization: {{ $autoscaling.memory.targetMemoryUtilizationPercentage }}
+      {{- end }}
+  {{- end }}
+  {{- with $autoscaling.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
