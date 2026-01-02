@@ -65,4 +65,4 @@ spec:
       {{- end }}
 {{- end }}
   selector:
-    {{- include "centrifugo.selectorLabels" . | nindent 4 }}
+    {{- include "centrifugo.main.selectorLabels" . | nindent 4 }}

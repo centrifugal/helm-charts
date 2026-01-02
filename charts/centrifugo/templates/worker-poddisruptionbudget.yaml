@@ -1,0 +1,25 @@
+{{- range .Values.workers }}
+{{- $worker := . }}
+{{- $root := $ }}
+{{- $pdb := default $root.Values.podDisruptionBudget $worker.podDisruptionBudget }}
+{{- if $pdb.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "centrifugo.worker.fullname" (dict "root" $root "worker" $worker) }}
+  namespace: {{ include "centrifugo.namespace" $root }}
+  labels:
+    {{- include "centrifugo.worker.labels" (dict "root" $root "worker" $worker) | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "centrifugo.worker.selectorLabels" (dict "root" $root "worker" $worker) | nindent 6 }}
+  {{- if $pdb.minAvailable }}
+  minAvailable: {{ $pdb.minAvailable }}
+  {{- end }}
+  {{- if $pdb.maxUnavailable }}
+  maxUnavailable: {{ $pdb.maxUnavailable }}
+  {{- end }}
+{{- end }}
+{{- end }}

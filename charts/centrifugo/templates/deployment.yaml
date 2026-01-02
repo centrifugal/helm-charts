@@ -33,6 +33,7 @@ spec:
         {{- end }}
       labels:
         {{- include "centrifugo.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: server
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

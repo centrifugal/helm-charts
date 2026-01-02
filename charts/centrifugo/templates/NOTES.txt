@@ -53,13 +53,53 @@ Internal port provides: API, Prometheus metrics, admin UI, health checks.
   - Metrics:     http://localhost:{{ .Values.serviceInternal.port }}/metrics
   - Health:      http://localhost:{{ .Values.serviceInternal.port }}/health
 
+=== DEPLOYMENTS ===
+
+Main deployment: {{ $fullName }} ({{ .Values.replicaCount }} replica{{ if ne (int .Values.replicaCount) 1 }}s{{ end }})
+{{- if .Values.workers }}
+
+Worker deployments:
+{{- range .Values.workers }}
+  - {{ include "centrifugo.worker.fullname" (dict "root" $ "worker" .) }} ({{ default $.Values.replicaCount .replicaCount }} replica{{ if ne (int (default $.Values.replicaCount .replicaCount)) 1 }}s{{ end }}{{ if .config.node.role }}, role: {{ .config.node.role }}{{ end }})
+{{- end }}
+{{- end }}
+
+{{- if and .Values.workers (eq .Values.config.engine.type "memory") }}
+
+⚠️  WARNING: Workers are configured but engine type is "memory".
+    Workers require Redis or NATS engine for multi-pod deployments.
+    Update your configuration:
+      --set config.engine.type=redis \
+      --set config.engine.redis.address=redis://your-redis:6379
+{{- end }}
+
 === VERIFY DEPLOYMENT ===
 
+Check main deployment:
+  kubectl get pods --namespace {{ $namespace }} -l "app.kubernetes.io/name={{ include "centrifugo.name" . }},app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/component=server"
+
+{{- if .Values.workers }}
+Check worker deployments:
+{{- range .Values.workers }}
+  kubectl get pods --namespace {{ $namespace }} -l "app.kubernetes.io/component={{ include "centrifugo.worker.component" . }}"
+{{- end }}
+
+Check all pods:
+  kubectl get pods --namespace {{ $namespace }} -l "app.kubernetes.io/name={{ include "centrifugo.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+{{- else }}
 Check pod status:
   kubectl get pods --namespace {{ $namespace }} -l "app.kubernetes.io/name={{ include "centrifugo.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+{{- end }}
 
-View logs:
-  kubectl logs --namespace {{ $namespace }} -l "app.kubernetes.io/name={{ include "centrifugo.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+View logs (main deployment):
+  kubectl logs --namespace {{ $namespace }} -l "app.kubernetes.io/component=server"
+{{- if .Values.workers }}
+
+View logs (workers):
+{{- range .Values.workers }}
+  kubectl logs --namespace {{ $namespace }} -l "app.kubernetes.io/component={{ include "centrifugo.worker.component" . }}"
+{{- end }}
+{{- end }}
 
 === DOCUMENTATION ===
 

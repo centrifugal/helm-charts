@@ -80,6 +80,12 @@ config:
   channel:
     namespaces: []
 
+  # Node role configuration (when Centrifugo supports it natively).
+  # This will be visible in Centrifugo metrics and web UI.
+  # Recommended to set "default" for main deployment, and specific roles for workers.
+  # node:
+  #   role: "default"
+
 # ============================================
 # ENVIRONMENT VARIABLES
 # ============================================
@@ -611,6 +617,150 @@ autoscaling:
   # Scaling behavior configuration
   # ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#default-behavior
   behavior: {}
+
+# ============================================
+# WORKERS (MULTI-DEPLOYMENT)
+# ============================================
+
+# Workers allow running additional Centrifugo deployments with specialized roles
+# within the same Helm release. The main deployment (configured above) always exists.
+# Workers are additional deployments for specialized workloads like:
+# - Data ingestion nodes
+# - Push notification processing
+# - Background job processing
+# - Any workload that needs different scaling/resources than client-facing nodes
+#
+# Each worker creates a separate Deployment with:
+# - Its own replica count and autoscaling
+# - Config inheritance from main deployment with deep merge for overrides
+# - Separate resource limits
+# - Optional dedicated service and ingress
+# - node.role configuration for Centrifugo metrics and web UI visibility
+#
+# IMPORTANT: Requires Redis or NATS engine for multi-pod deployments.
+# Workers inherit all configuration from the main deployment by default.
+# Override only what differs per worker to keep configuration DRY.
+#
+# Example:
+# workers:
+#   - name: ingestion
+#     replicaCount: 2
+#     config:
+#       node:
+#         role: ingestion  # Visible in Centrifugo metrics and web UI
+#     resources:
+#       requests:
+#         cpu: 1000m
+#         memory: 1Gi
+#     autoscaling:
+#       enabled: true
+#       minReplicas: 2
+#       maxReplicas: 10
+#
+workers: []
+  # - name: ingestion  # Required: unique name for this worker (used in deployment name)
+  #
+  #   # Deployment configuration (inherits from main if not specified)
+  #   replicaCount: 2
+  #   revisionHistoryLimit: 10
+  #   deploymentStrategy: {}
+  #   annotations: {}
+  #
+  #   # Pod configuration
+  #   podAnnotations: {}
+  #   podLabels: {}
+  #   priorityClassName: ""
+  #   hostAliases: []
+  #   runtimeClassName: ""
+  #   shareProcessNamespace: false
+  #   schedulerName: ""
+  #   overhead: {}
+  #
+  #   # Container configuration
+  #   terminationMessagePolicy: ""
+  #   terminationGracePeriodSeconds: 30
+  #   lifecycle: {}
+  #   extraContainers: []
+  #   initContainers: []
+  #
+  #   # Health checks (inherits from main if not specified)
+  #   livenessProbe: {}
+  #   readinessProbe: {}
+  #   startupProbe: {}
+  #
+  #   # Resources (typically different per worker type)
+  #   resources: {}
+  #     # requests:
+  #     #   cpu: 1000m
+  #     #   memory: 1Gi
+  #
+  #   # Scheduling
+  #   nodeSelector: {}
+  #   tolerations: []
+  #   affinity: {}
+  #   dnsPolicy: ""
+  #   dnsConfig: {}
+  #   topologySpreadConstraints: []
+  #
+  #   # Pod disruption budget
+  #   podDisruptionBudget:
+  #     enabled: false
+  #     minAvailable: 1
+  #     # maxUnavailable: 1
+  #
+  #   # Autoscaling (per worker)
+  #   autoscaling:
+  #     enabled: false
+  #     minReplicas: 1
+  #     maxReplicas: 100
+  #     cpu:
+  #       enabled: false
+  #       targetCPUUtilizationPercentage: 80
+  #     memory:
+  #       enabled: false
+  #       targetMemoryUtilizationPercentage: 80
+  #     customMetrics: []
+  #     behavior: {}
+  #
+  #   # Centrifugo configuration (deep merged with main config)
+  #   # Worker config overrides main config fields
+  #   config:
+  #     node:
+  #       role: ingestion  # This will be visible in Centrifugo metrics and web UI
+  #     # Inherits engine, admin, and all other settings from main config
+  #     # Override only what differs for this worker
+  #
+  #   # Environment variables (merged with main env)
+  #   env: {}
+  #   envSecret: []
+  #   envFrom: []
+  #
+  #   # Volumes (merged with main volumes)
+  #   volumes: []
+  #   volumeMounts: []
+  #
+  #   # Optional separate service for this worker
+  #   # By default, workers use the main service (no separate service created)
+  #   service:
+  #     enabled: false  # Set to true to create a dedicated service for this worker
+  #     type: ClusterIP
+  #     port: 8000
+  #     nodePort: ""
+  #     clusterIP: ""
+  #     annotations: {}
+  #     labels: {}
+  #     appProtocol: ""
+  #
+  #   # Optional separate ingress for this worker
+  #   # Most workers don't need ingress (internal processing only)
+  #   ingress:
+  #     enabled: false
+  #     ingressClassName: ""
+  #     pathType: Prefix
+  #     labels: {}
+  #     annotations: {}
+  #     hosts: []
+  #     tls: []
 
 # ============================================
 # ADDITIONAL FEATURES

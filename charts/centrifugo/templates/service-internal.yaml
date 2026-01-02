@@ -30,5 +30,5 @@ spec:
       nodePort: {{ .Values.serviceInternal.nodePort }}
       {{- end }}
   selector:
-    {{- include "centrifugo.selectorLabels" . | nindent 4 }}
+    {{- include "centrifugo.main.selectorLabels" . | nindent 4 }}
 {{- end }}
