@@ -611,7 +611,9 @@ If `httpRoute.enabled` is `true` but neither `parentRefs` nor `gateway.create` i
 
 **Important:** Centrifugo client connections are long-lived. A finite request timeout will terminate WebSocket/SSE/streaming connections, so you must make sure your Gateway keeps them open.
 
-How you do that is **implementation-specific**, because the HTTPRoute `timeouts` field is an *optional* ("extended" conformance) part of the Gateway API and not every controller supports it. Notably, the **GKE Gateway controller rejects any HTTPRoute that sets `timeouts`** (the route never becomes `Accepted`). For portability the chart therefore leaves `httpRoute.timeouts` **empty by default** and lets you opt into the mechanism your implementation actually uses:
+How you do that is **implementation-specific**, because the HTTPRoute `timeouts` field is an _optional_ ("extended" conformance) part of the Gateway API and not every controller supports it. Notably, the **GKE Gateway controller rejects any HTTPRoute that sets `timeouts`** (the route never becomes `Accepted`).
+
+For portability the chart therefore leaves `httpRoute.timeouts` **empty by default** and lets you opt into the mechanism your implementation actually uses:
 
 - **Controllers that support the field** (Envoy Gateway, Istio, Traefik, kgateway, …) — disable the request timeout on the route:
 
@@ -632,7 +634,9 @@ The internal route (`httpRouteInternal`) carries ordinary short-lived requests a
 
 The chart's `Gateway`/`HTTPRoute` resources are vendor-neutral; the cloud specifics are in which `GatewayClass` you target and where you configure long-lived timeouts.
 
-**GKE.** GKE ships a native Gateway controller, so you generally don't need the `BackendConfig`-via-annotation setup the Ingress path requires — the `GatewayClass` selects the Google Cloud load balancer for you. Common classes: `gke-l7-global-external-managed` (global external), `gke-l7-regional-external-managed` (regional external), `gke-l7-rilb` (regional internal). Configure WebSocket/long-lived timeouts with a `GCPBackendPolicy` attached to the Centrifugo Service (do **not** set `httpRoute.timeouts`, which GKE rejects):
+**GKE.** GKE ships a native Gateway controller, so you generally don't need the `BackendConfig`-via-annotation setup the Ingress path requires — the `GatewayClass` selects the Google Cloud load balancer for you. Common classes: `gke-l7-global-external-managed` (global external), `gke-l7-regional-external-managed` (regional external), `gke-l7-rilb` (regional internal).
+
+Configure WebSocket/long-lived timeouts with a `GCPBackendPolicy` attached to the Centrifugo Service (do **not** set `httpRoute.timeouts`, which GKE rejects):
 
 ```yaml
 gateway:
@@ -671,14 +675,16 @@ spec:
     name: my-release-centrifugo
 ```
 
-**EKS / AWS.** The AWS Load Balancer Controller supports the Gateway API (GA), provisioning an ALB for HTTP routes (and an NLB for L4 routes) — use a `GatewayClass` whose controller is `gateway.k8s.aws/alb`. ALB-specific behavior such as idle timeout, target-group and health-check settings is configured through the controller's `LoadBalancerConfiguration` / `TargetGroupConfiguration` CRDs rather than the HTTPRoute `timeouts` field, so likewise keep `httpRoute.timeouts` empty and tune the ALB there. (If you prefer the classic ALB Ingress path, see [AWS ALB Ingress (EKS)](#aws-alb-ingress-eks) above.)
+**EKS / AWS.** The AWS Load Balancer Controller supports the Gateway API (GA), provisioning an ALB for HTTP routes (and an NLB for L4 routes) — use a `GatewayClass` whose controller is `gateway.k8s.aws/alb`.
+
+ALB-specific behavior such as idle timeout, target-group and health-check settings is configured through the controller's `LoadBalancerConfiguration` / `TargetGroupConfiguration` CRDs rather than the HTTPRoute `timeouts` field, so likewise keep `httpRoute.timeouts` empty and tune the ALB there. (If you prefer the classic ALB Ingress path, see [AWS ALB Ingress (EKS)](#aws-alb-ingress-eks) above.)
 
 In both cases the chart only needs `gateway`/`httpRoute` values; the cloud policy resources (`GCPBackendPolicy`, AWS LB CRDs) are applied alongside the release.
 
 #### Notes and gotchas
 
 - **Hostname intersection:** a Gateway listener `hostname` and the HTTPRoute `hostnames` must intersect, or the route will not bind. Keep them consistent.
-- **Cross-namespace attachment:** if the route and the Gateway live in different namespaces (you set `gateway.namespace`, or reference an external Gateway), the Gateway's listener `allowedRoutes.namespaces` must permit the route's namespace. The backend Service is always in the release namespace, so no `ReferenceGrant` is needed for it; a TLS `certificateRefs` resolving across namespaces would need one.
+- **Cross-namespace attachment:** if the route and the Gateway live in different namespaces (you set `gateway.namespace`, or reference an external Gateway), the Gateway's listener `allowedRoutes.namespaces` must permit the route's namespace. The backend Service is always in the release namespace, so no `ReferenceGrant` is needed for it (a TLS `certificateRefs` resolving across namespaces would).
 - **Exposing internal endpoints:** as with `ingressInternal`, be careful with `httpRouteInternal` — it can expose admin, server API, metrics and health endpoints. Restrict access at the Gateway.
 
 ## Production Deployment
