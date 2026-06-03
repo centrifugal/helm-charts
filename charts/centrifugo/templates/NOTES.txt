@@ -14,6 +14,15 @@ External access via Ingress:
   {{- end }}
 {{- end }}
 
+{{- else if .Values.httpRoute.enabled }}
+
+External access via Gateway API (HTTPRoute):
+{{- range .Values.httpRoute.hostnames }}
+  http(s)://{{ . }}/
+{{- else }}
+  (no hostnames set - the route matches all hostnames on its Gateway listener)
+{{- end }}
+
 {{- else if contains "NodePort" .Values.service.type }}
 
 External access via NodePort:
@@ -52,6 +61,15 @@ Internal port provides: API, Prometheus metrics, admin UI, health checks.
   - Admin UI:    http://localhost:{{ .Values.serviceInternal.port }}/admin
   - Metrics:     http://localhost:{{ .Values.serviceInternal.port }}/metrics
   - Health:      http://localhost:{{ .Values.serviceInternal.port }}/health
+{{- if .Values.httpRouteInternal.enabled }}
+
+Internal endpoints are also exposed via Gateway API (HTTPRoute):
+{{- range .Values.httpRouteInternal.hostnames }}
+  http(s)://{{ . }}/
+{{- end }}
+  WARNING: these endpoints (admin, server API, metrics, health) are sensitive -
+  make sure access is restricted at the Gateway.
+{{- end }}
 
 === VERIFY DEPLOYMENT ===
 

@@ -23,6 +23,7 @@ For Centrifugo configuration options, see the [official documentation](https://c
     - [Full HAProxy Ingress Example (Minikube)](#full-haproxy-ingress-example-minikube)
     - [AWS ALB Ingress (EKS)](#aws-alb-ingress-eks)
     - [GCP GKE Ingress](#gcp-gke-ingress)
+  - [Gateway API (HTTPRoute)](#gateway-api-httproute)
 - [Production Deployment](#production-deployment)
   - [Resource Considerations](#resource-considerations)
   - [High Availability Example](#high-availability-example)
@@ -553,6 +554,132 @@ serviceAccount:
   annotations:
     iam.gke.io/gcp-service-account: centrifugo@PROJECT_ID.iam.gserviceaccount.com
 ```
+
+### Gateway API (HTTPRoute)
+
+As an alternative to Ingress, the chart can expose Centrifugo using the [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/). This requires the Gateway API CRDs (`gateway.networking.k8s.io`) to be installed in the cluster and a Gateway controller (Envoy Gateway, NGINX Gateway Fabric, Istio, Contour, Kong, etc.).
+
+Gateway API splits the responsibilities that Ingress bundles together:
+
+- A **Gateway** owns the listeners (ports, protocol, TLS) and the underlying load balancer. It is usually a shared, platform-managed resource — one Gateway fronts many applications.
+- An **HTTPRoute** says "for these hostnames/paths, route to this Service". It attaches to a Gateway via `parentRefs`. This is the part an application like Centrifugo owns.
+
+The chart mirrors its Ingress model: `httpRoute` exposes the **external** (client) endpoint, and `httpRouteInternal` optionally exposes the **internal** endpoint (admin UI, server API, metrics, health). The backend Service and port are derived automatically, exactly like the Ingress templates.
+
+#### Attaching to an existing Gateway (recommended)
+
+Most users attach routes to a Gateway their platform team already runs:
+
+```yaml
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: shared-gateway
+      namespace: gateway-system
+      # sectionName: https   # optional: bind to a specific listener
+  hostnames:
+    - centrifugo.example.com
+```
+
+#### Letting the chart create the Gateway
+
+For self-contained or dedicated-load-balancer deployments, the chart can create the Gateway too. This is off by default and secondary — prefer a shared Gateway when you have one. When `gateway.create` is `true` and `httpRoute.parentRefs` is empty, the route attaches to the created Gateway automatically:
+
+```yaml
+gateway:
+  create: true
+  gatewayClassName: eg            # your installed GatewayClass
+  listeners:
+    - name: https
+      port: 443
+      protocol: HTTPS
+      hostname: centrifugo.example.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: centrifugo-tls
+
+httpRoute:
+  enabled: true
+  hostnames:
+    - centrifugo.example.com
+```
+
+If `httpRoute.enabled` is `true` but neither `parentRefs` nor `gateway.create` is set, rendering fails with a clear error — the chart never silently attaches to a guessed Gateway name.
+
+#### Long-lived connections (WebSocket, SSE, HTTP-streaming)
+
+**Important:** Centrifugo client connections are long-lived. A finite request timeout will terminate WebSocket/SSE/streaming connections, so you must make sure your Gateway keeps them open.
+
+How you do that is **implementation-specific**, because the HTTPRoute `timeouts` field is an *optional* ("extended" conformance) part of the Gateway API and not every controller supports it. Notably, the **GKE Gateway controller rejects any HTTPRoute that sets `timeouts`** (the route never becomes `Accepted`). For portability the chart therefore leaves `httpRoute.timeouts` **empty by default** and lets you opt into the mechanism your implementation actually uses:
+
+- **Controllers that support the field** (Envoy Gateway, Istio, Traefik, kgateway, …) — disable the request timeout on the route:
+
+  ```yaml
+  httpRoute:
+    enabled: true
+    timeouts:
+      request: "0s"   # disable the total request/stream timeout
+  ```
+
+  Some of these also have a separate **idle timeout** configured via policy resources (e.g. Envoy Gateway `ClientTrafficPolicy`/`BackendTrafficPolicy`, Istio settings) rather than the HTTPRoute — tune it the same way you would the Ingress controller timeouts documented above.
+
+- **GKE / AWS managed controllers** — leave `httpRoute.timeouts` empty and configure the timeout on the cloud resource instead (see the next section).
+
+The internal route (`httpRouteInternal`) carries ordinary short-lived requests and needs no timeout override.
+
+#### Gateway API on managed Kubernetes (GKE, EKS)
+
+The chart's `Gateway`/`HTTPRoute` resources are vendor-neutral; the cloud specifics are in which `GatewayClass` you target and where you configure long-lived timeouts.
+
+**GKE.** GKE ships a native Gateway controller, so you generally don't need the `BackendConfig`-via-annotation setup the Ingress path requires — the `GatewayClass` selects the Google Cloud load balancer for you. Common classes: `gke-l7-global-external-managed` (global external), `gke-l7-regional-external-managed` (regional external), `gke-l7-rilb` (regional internal). Configure WebSocket/long-lived timeouts with a `GCPBackendPolicy` attached to the Centrifugo Service (do **not** set `httpRoute.timeouts`, which GKE rejects):
+
+```yaml
+gateway:
+  create: true
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+    - name: https
+      port: 443
+      protocol: HTTPS
+      hostname: centrifugo.example.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: centrifugo-tls
+httpRoute:
+  enabled: true
+  hostnames:
+    - centrifugo.example.com
+  timeouts: {}   # leave empty on GKE
+```
+
+```yaml
+# Apply separately. targetRef.name must match the Centrifugo Service name, which is the
+# release's fullname (e.g. "my-release-centrifugo", or just "centrifugo" if the release is
+# named "centrifugo"). Run `kubectl get svc` to confirm.
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: centrifugo-ws
+spec:
+  default:
+    timeoutSec: 86400
+  targetRef:
+    group: ""
+    kind: Service
+    name: my-release-centrifugo
+```
+
+**EKS / AWS.** The AWS Load Balancer Controller supports the Gateway API (GA), provisioning an ALB for HTTP routes (and an NLB for L4 routes) — use a `GatewayClass` whose controller is `gateway.k8s.aws/alb`. ALB-specific behavior such as idle timeout, target-group and health-check settings is configured through the controller's `LoadBalancerConfiguration` / `TargetGroupConfiguration` CRDs rather than the HTTPRoute `timeouts` field, so likewise keep `httpRoute.timeouts` empty and tune the ALB there. (If you prefer the classic ALB Ingress path, see [AWS ALB Ingress (EKS)](#aws-alb-ingress-eks) above.)
+
+In both cases the chart only needs `gateway`/`httpRoute` values; the cloud policy resources (`GCPBackendPolicy`, AWS LB CRDs) are applied alongside the release.
+
+#### Notes and gotchas
+
+- **Hostname intersection:** a Gateway listener `hostname` and the HTTPRoute `hostnames` must intersect, or the route will not bind. Keep them consistent.
+- **Cross-namespace attachment:** if the route and the Gateway live in different namespaces (you set `gateway.namespace`, or reference an external Gateway), the Gateway's listener `allowedRoutes.namespaces` must permit the route's namespace. The backend Service is always in the release namespace, so no `ReferenceGrant` is needed for it; a TLS `certificateRefs` resolving across namespaces would need one.
+- **Exposing internal endpoints:** as with `ingressInternal`, be careful with `httpRouteInternal` — it can expose admin, server API, metrics and health endpoints. Restrict access at the Gateway.
 
 ## Production Deployment
 
