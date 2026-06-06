@@ -1,0 +1,55 @@
+{{- if .Values.httpRouteInternal.enabled -}}
+{{- $fullName := include "centrifugo.fullname" . -}}
+{{- $namespace := include "centrifugo.namespace" . -}}
+{{- $svcPort := .Values.serviceInternal.port -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}-internal
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "centrifugo.labels" . | nindent 4 }}
+    {{- with .Values.httpRouteInternal.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.httpRouteInternal.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- if .Values.httpRouteInternal.parentRefs }}
+    {{- toYaml .Values.httpRouteInternal.parentRefs | nindent 4 }}
+    {{- else if .Values.gateway.create }}
+    - name: {{ .Values.gateway.name | default $fullName }}
+      {{- with .Values.gateway.namespace }}
+      namespace: {{ . }}
+      {{- end }}
+    {{- else }}
+    {{- fail "httpRouteInternal.enabled is true but no Gateway is referenced: set httpRouteInternal.parentRefs to an existing Gateway, or set gateway.create=true" }}
+    {{- end }}
+  {{- with .Values.httpRouteInternal.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - matches:
+        {{- with .Values.httpRouteInternal.matches }}
+        {{- toYaml . | nindent 8 }}
+        {{- else }}
+        - path:
+            type: PathPrefix
+            value: /
+        {{- end }}
+      {{- with .Values.httpRouteInternal.timeouts }}
+      timeouts:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      backendRefs:
+        {{- if .Values.serviceInternal.useSeparate }}
+        - name: {{ $fullName }}-internal
+        {{- else }}
+        - name: {{ $fullName }}
+        {{- end }}
+          port: {{ $svcPort }}
+{{- end }}

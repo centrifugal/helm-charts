@@ -312,6 +312,118 @@ ingressInternal:
     #     - centrifugo.local
 
 # ============================================
+# GATEWAY API CONFIGURATION
+# ============================================
+# Alternative to Ingress, using the Kubernetes Gateway API. Requires the Gateway API
+# CRDs (gateway.networking.k8s.io) to be installed in the cluster. Routes attach to a
+# Gateway, which owns the listener/load balancer/TLS (analogous to an Ingress controller).
+
+# Optionally let this chart create the Gateway itself. This is secondary/optional: most
+# users attach routes to an existing, platform-managed Gateway (leave create=false and set
+# httpRoute.parentRefs). Set create=true only for self-contained or dedicated-load-balancer
+# deployments where this chart should own the Gateway too.
+gateway:
+  create: false
+  # gatewayClassName references an installed Gateway controller (analogous to ingressClassName).
+  # Required when create=true.
+  gatewayClassName: ""
+  # Name of the created Gateway. Defaults to the chart fullname.
+  name: ""
+  # Namespace for the created Gateway. Defaults to the release namespace.
+  namespace: ""
+  labels: {}
+  annotations: {}
+  # Listeners the Gateway exposes (ports/protocol/hostname, and optional TLS). Rendered as-is.
+  # At least one listener is required when create=true.
+  listeners: []
+    # - name: http
+    #   port: 80
+    #   protocol: HTTP
+    #   hostname: centrifugo.example.com
+    #   allowedRoutes:
+    #     namespaces:
+    #       from: Same
+    # - name: https
+    #   port: 443
+    #   protocol: HTTPS
+    #   hostname: centrifugo.example.com
+    #   tls:
+    #     mode: Terminate
+    #     certificateRefs:
+    #       - name: centrifugo-tls
+
+# HTTPRoute for external (client) traffic. Routes to the main service on service.port.
+httpRoute:
+  enabled: false
+
+  # parentRefs: which Gateway(s) this route attaches to. Resolution order:
+  #   - if set here, used as-is;
+  #   - else if gateway.create=true, attaches to the chart-created Gateway;
+  #   - else rendering fails with a clear error (you must reference a Gateway explicitly).
+  # To bind to a specific listener (e.g. only the https listener), set parentRefs explicitly
+  # with a sectionName.
+  parentRefs: []
+    # - name: my-gateway
+    #   namespace: gateway-system
+    #   sectionName: https
+
+  hostnames: []
+    # - centrifugo.example.com
+
+  # Path matches for the route. Defaults to a single PathPrefix "/" when empty. The backend
+  # (main service / service.port) is derived automatically.
+  matches: []
+    # - path:
+    #     type: PathPrefix
+    #     value: /
+
+  # Route timeouts (Gateway API HTTPRoute spec.rules.timeouts).
+  # IMPORTANT: Centrifugo external (client) connections are LONG-LIVED — WebSocket, SSE and
+  # HTTP-streaming. A finite request timeout will terminate them. However, this field is OPTIONAL
+  # ("extended" conformance) in the Gateway API and several controllers do NOT support it — notably
+  # the GKE Gateway controller REJECTS any HTTPRoute that sets it (the route never becomes
+  # Accepted). It is therefore left EMPTY by default for portability. Configure long-lived timeouts
+  # according to your Gateway implementation:
+  #   - Envoy Gateway / Istio / Traefik / kgateway (support the field): set request: "0s" to disable.
+  #   - GKE Gateway: do NOT set this; attach a GCPBackendPolicy with timeoutSec to the Service.
+  #   - AWS Load Balancer Controller (ALB): use its LoadBalancerConfiguration/TargetGroupConfiguration CRDs.
+  # See the README "Gateway API" section for per-cloud guidance.
+  timeouts: {}
+    # request: "0s"
+
+  labels: {}
+  annotations: {}
+
+# HTTPRoute for internal endpoints. Routes to the internal service on serviceInternal.port.
+httpRouteInternal:
+  # !!! ATTENTION !!!
+  # Be careful in exposing internal services by httpRouteInternal. Make sure
+  # you understand which Centrifugo endpoints are exposed in this case (server API,
+  # admin, Prometheus metrics, healthcheck, etc.). If you really need exposing internal
+  # endpoints consider limiting access to the route from the outside by load balancer
+  # rules, probably per specific path. Probably `admin_external` or `api_external`
+  # options which expose corresponding handlers on the external route will work better
+  # for you.
+  enabled: false
+
+  # parentRefs: same resolution as httpRoute.parentRefs above.
+  parentRefs: []
+    # - name: my-gateway
+    #   namespace: gateway-system
+
+  hostnames: []
+    # - centrifugo-internal.example.com
+
+  matches: []
+
+  # Internal endpoints (admin/API/metrics/health) are ordinary short-lived requests, so there
+  # is no timeout override by default — unlike the external route above.
+  timeouts: {}
+
+  labels: {}
+  annotations: {}
+
+# ============================================
 # DEPLOYMENT CONFIGURATION
 # ============================================
 

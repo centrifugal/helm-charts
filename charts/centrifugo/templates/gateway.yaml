@@ -1,0 +1,24 @@
+{{- if .Values.gateway.create -}}
+{{- if not .Values.gateway.listeners }}
+{{- fail "gateway.create is true but gateway.listeners is empty: a Gateway requires at least one listener" }}
+{{- end }}
+{{- $namespace := .Values.gateway.namespace | default (include "centrifugo.namespace" .) -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.gateway.name | default (include "centrifugo.fullname" .) }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "centrifugo.labels" . | nindent 4 }}
+    {{- with .Values.gateway.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  gatewayClassName: {{ required "gateway.gatewayClassName is required when gateway.create is true" .Values.gateway.gatewayClassName }}
+  listeners:
+    {{- toYaml .Values.gateway.listeners | nindent 4 }}
+{{- end }}
