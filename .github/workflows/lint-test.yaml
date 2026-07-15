@@ -13,7 +13,7 @@ jobs:
           - v1.35.0   # And modern one
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Fetch history
         run: git fetch --prune --unshallow
