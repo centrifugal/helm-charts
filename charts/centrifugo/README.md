@@ -24,6 +24,7 @@ For Centrifugo configuration options, see the [official documentation](https://c
     - [AWS ALB Ingress (EKS)](#aws-alb-ingress-eks)
     - [GCP GKE Ingress](#gcp-gke-ingress)
   - [Gateway API (HTTPRoute)](#gateway-api-httproute)
+  - [Service Mesh (Istio)](#service-mesh-istio)
 - [Production Deployment](#production-deployment)
   - [Resource Considerations](#resource-considerations)
   - [High Availability Example](#high-availability-example)
@@ -686,6 +687,27 @@ In both cases the chart only needs `gateway`/`httpRoute` values; the cloud polic
 - **Hostname intersection:** a Gateway listener `hostname` and the HTTPRoute `hostnames` must intersect, or the route will not bind. Keep them consistent.
 - **Cross-namespace attachment:** if the route and the Gateway live in different namespaces (you set `gateway.namespace`, or reference an external Gateway), the Gateway's listener `allowedRoutes.namespaces` must permit the route's namespace. The backend Service is always in the release namespace, so no `ReferenceGrant` is needed for it (a TLS `certificateRefs` resolving across namespaces would).
 - **Exposing internal endpoints:** as with `ingressInternal`, be careful with `httpRouteInternal` — it can expose admin, server API, metrics and health endpoints. Restrict access at the Gateway.
+
+### Service Mesh (Istio)
+
+Centrifugo runs under a service mesh with **no extra configuration** — WebSocket, HTTP streaming/SSE and emulation on the external port, the HTTP/gRPC server APIs, and the unidirectional gRPC stream all work out of the box.
+
+This works because every Service port declares its L7 protocol through the standard [`appProtocol`](https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol) field
+(`http` for the external and internal ports, `grpc` for the gRPC ports — see [Service Parameters](#service-parameters) to override).
+A mesh reads `appProtocol` directly, so it classifies each port deterministically instead of guessing.
+
+**Why it matters.** Without `appProtocol`, Istio falls back to byte-level [protocol sniffing](https://istio.io/latest/docs/ops/configuration/traffic-management/protocol-selection/).
+For a bidirectional WebSocket that opens with a client-sent HTTP `Upgrade` this usually works, but detection is best-effort and adds latency: Istio installs both an HTTP filter chain _and_ a plain-TCP fallback on the port, and traffic that isn't recognized in time drops to raw TCP (losing WebSocket/HTTP handling).
+This is the intermittent behavior — connections settling only after a delay — originally reported in [#23](https://github.com/centrifugal/helm-charts/issues/23).
+Declaring `appProtocol` removes the guesswork: the external port becomes an unconditional HTTP listener, and Istio passes WebSocket upgrades and does not buffer SSE/streaming responses.
+
+> Verified on Istio (sidecar + ingress gateway): with the chart defaults the external port is programmed as a single HTTP filter chain (no TCP fallback), and a WebSocket completes through the mesh — client sidecar → mTLS → server sidecar → Centrifugo. Removing `appProtocol` brings the sniffing/TCP-fallback chain back.
+
+**WebSocket over HTTP/2.** By default the external port speaks HTTP/1.1, and WebSocket traverses the mesh over HTTP/1.1 — which is exactly what `appProtocol: http` describes.
+Clients that could use [WebSocket over HTTP/2 (RFC 8441)](https://centrifugal.dev/docs/transports/websocket#websocket-over-http2-rfc-8441) fall back to HTTP/1.1 automatically, because a client may only attempt Extended CONNECT when the edge advertises `SETTINGS_ENABLE_CONNECT_PROTOCOL`, which Istio does not do by default.
+An HTTP/2 ingress listener therefore keeps serving HTTP/2 for ordinary requests while WebSocket uses HTTP/1.1 — both coexist with no extra config.
+
+If you want true WebSocket-over-HTTP/2 end-to-end, it is opt-in on both sides: enable it on Centrifugo (TLS or `http_server.h2c_external`, plus the `GODEBUG=http2xconnect=1` runtime flag), set the external port's `appProtocol` to `http2`, and enable Extended CONNECT on the mesh — currently an `EnvoyFilter` setting `allow_connect`, as there is no Istio-native switch yet ([istio/istio#55680](https://github.com/istio/istio/discussions/55680)).
 
 ## Production Deployment
 
@@ -1358,9 +1380,21 @@ initContainers:
 |-----------|-------------|---------|
 | `service.type` | Service type | `ClusterIP` |
 | `service.port` | External service port | `8000` |
+| `service.appProtocol` | appProtocol for the external port (WebSocket/HTTP streaming/SSE) | `http` |
 | `serviceInternal.port` | Internal service port | `9000` |
+| `serviceInternal.appProtocol` | appProtocol for the internal port (HTTP API, metrics, health, admin) | `http` |
 | `serviceGrpc.port` | GRPC API service port | `10000` |
+| `serviceGrpc.appProtocol` | appProtocol for the GRPC API port | `grpc` |
 | `serviceUniGrpc.port` | Uni GRPC service port | `11000` |
+| `serviceUniGrpc.appProtocol` | appProtocol for the unidirectional GRPC port | `grpc` |
+
+Each service port advertises its L7 protocol via the standard Kubernetes [`appProtocol`](https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol) field so a service mesh (Istio, Linkerd, …) routes it correctly out of the box — no manual protocol hints required.
+The external port defaults to `http` because Centrifugo serves it over HTTP/1.1 (WebSocket, HTTP streaming/SSE, emulation), and Istio's `http` protocol passes WebSocket upgrades and does not buffer streaming responses.
+`appProtocol` is ignored by plain kube-proxy, so non-mesh clusters are unaffected. Set an `appProtocol` to `""` to omit the field, or override it when a port runs differently:
+
+- `https` — if Centrifugo terminates TLS on the external port itself.
+- `http2` — if you enable Centrifugo's [WebSocket over HTTP/2 (RFC 8441)](https://centrifugal.dev/docs/transports/websocket#websocket-over-http2-rfc-8441).
+  That transport also requires TLS or `http_server.h2c_external` on Centrifugo, and forwarding WebSocket-over-HTTP/2 through Istio needs Extended CONNECT enabled on the mesh (an `EnvoyFilter` setting `allow_connect`; there is no Istio-native switch yet — see [istio/istio#55680](https://github.com/istio/istio/discussions/55680)).
 
 ### Metrics Parameters
 

@@ -27,6 +27,12 @@ This tutorial provides step-by-step instructions for deploying Centrifugo v13 to
   - [8. Configure ALB Ingress](#8-configure-alb-ingress)
   - [9. Verify Installation](#9-verify-installation-eks)
   - [10. Monitoring Setup](#10-monitoring-setup-eks)
+- [Local Testing with Istio (Minikube)](#local-testing-with-istio-minikube)
+  - [1. Start Minikube and Install Istio](#1-start-minikube-and-install-istio)
+  - [2. Deploy Centrifugo into the Mesh](#2-deploy-centrifugo-into-the-mesh)
+  - [3. Verify Mesh Behavior](#3-verify-mesh-behavior)
+  - [4. Going Further: Ingress Gateway, TLS and HTTP/2](#4-going-further-ingress-gateway-tls-and-http2)
+  - [5. Cleanup](#5-cleanup)
 - [Production Considerations](#production-considerations)
 - [Troubleshooting](#troubleshooting)
 
@@ -325,10 +331,9 @@ spec:
   timeoutSec: 86400
   connectionDraining:
     drainingTimeoutSec: 30
-  # Enable HTTP/2 for better performance
-  http2:
-    enabled: true
 ```
+
+> Keep the load balancer talking to Centrifugo over HTTP/1.1 (the default). Don't switch the backend to HTTP/2 (e.g. via a `cloud.google.com/app-protocols: '{"external":"HTTP2"}'` annotation): Centrifugo serves the external port over HTTP/1.1 and WebSocket relies on the HTTP/1.1 `Upgrade` handshake, so an HTTP/2 backend would break client connections.
 
 Apply the BackendConfig:
 
@@ -429,8 +434,8 @@ curl http://localhost:9000/health
 Test via Ingress (after DNS propagates and certificate is active):
 
 ```bash
-# Test health endpoint (use internal service)
-kubectl port-forward svc/centrifugo-internal 9000:9000
+# Test health endpoint (internal port 9000 is exposed on the main service)
+kubectl port-forward svc/centrifugo 9000:9000
 curl http://localhost:9000/health
 
 # Test WebSocket connection via Ingress
@@ -946,6 +951,235 @@ kubectl port-forward svc/prometheus-grafana 3000:80
 ```
 
 Open <http://localhost:3000> (username: `admin`, password from above).
+
+---
+
+## Local Testing with Istio (Minikube)
+
+This walkthrough runs Centrifugo under [Istio](https://istio.io/) on a local Minikube cluster so you can confirm that WebSocket, HTTP streaming/SSE and the gRPC APIs work through a service mesh.
+It also shows *why* the chart sets an [`appProtocol`](https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol) on every Service port (see the [Service Mesh (Istio)](README.md#service-mesh-istio) section of the README).
+Every command below was run and verified against Istio 1.27.
+
+**Prerequisites:** a running Docker, plus `minikube`, `kubectl`, `helm`, and `istioctl`. Istio's [getting-started guide](https://istio.io/latest/docs/setup/getting-started/#download) covers installing `istioctl`; make sure it is on your `PATH`.
+
+### 1. Start Minikube and Install Istio
+
+Istio needs a few spare cores and some memory, so give the cluster room:
+
+```bash
+minikube start --driver=docker --cpus=6 --memory=6500 --profile=centrifugo-istio
+
+# Install the Istio control plane and ingress gateway
+istioctl install --set profile=default -y
+```
+
+### 2. Deploy Centrifugo into the Mesh
+
+Create a namespace and enable automatic sidecar injection on it:
+
+```bash
+kubectl create namespace centrifugo
+kubectl label namespace centrifugo istio-injection=enabled
+```
+
+For this test we let clients connect without a JWT so we can exercise the transport directly. Create a values file:
+
+```yaml
+# istio-values.yaml
+config:
+  client:
+    insecure: true        # anonymous WebSocket connects (testing only!)
+  admin:
+    enabled: true
+    insecure: true
+```
+
+Install the chart and wait for the rollout:
+
+```bash
+helm install centrifugo centrifugal/centrifugo -n centrifugo -f istio-values.yaml
+kubectl -n centrifugo rollout status deploy/centrifugo
+```
+
+> **Do not use `client.insecure` in production.** It disables connection authentication and is only appropriate for a throwaway local test.
+
+### 3. Verify Mesh Behavior
+
+**a) The sidecar is injected.** On recent Istio the proxy runs as a native sidecar (an init container with `restartPolicy: Always`):
+
+```bash
+POD=$(kubectl -n centrifugo get pod -l app.kubernetes.io/name=centrifugo -o jsonpath='{.items[0].metadata.name}')
+kubectl -n centrifugo get pod "$POD" \
+  -o jsonpath='{range .spec.initContainers[*]}{.name}{"\n"}{end}'
+# -> istio-init
+#    istio-proxy
+```
+
+**b) The chart advertised `appProtocol` on each port:**
+
+```bash
+kubectl -n centrifugo get svc centrifugo \
+  -o jsonpath='{range .spec.ports[*]}{.name}{" -> appProtocol="}{.appProtocol}{"\n"}{end}'
+# -> external -> appProtocol=http
+#    internal -> appProtocol=http
+#    grpc     -> appProtocol=grpc
+#    uni-grpc -> appProtocol=grpc
+```
+
+**c) Istio classified the ports from those hints.** Because `appProtocol` is explicit, Istio programs each inbound port as HTTP deterministically — there is no protocol sniffing and no plain-TCP fallback. The inbound route configs confirm the external WebSocket port (8000) is treated as HTTP:
+
+```bash
+istioctl proxy-config routes "$POD" -n centrifugo | grep 'inbound|http'
+# -> inbound|http|8000 ...
+#    inbound|http|9000 ...
+#    inbound|http|10000 ...
+#    inbound|http|11000 ...
+```
+
+> Without `appProtocol`, Istio falls back to byte-level protocol sniffing and installs a plain-TCP fallback chain on the port. Detection is best-effort and can add connection latency for WebSocket — the intermittent behavior reported in [issue #23](https://github.com/centrifugal/helm-charts/issues/23). Declaring `appProtocol` removes the guesswork.
+
+**d) A WebSocket works end-to-end through the mesh.** Start a client pod in the same (injected) namespace, so traffic flows client-sidecar → mTLS → server-sidecar → Centrifugo:
+
+```bash
+kubectl -n centrifugo run wsclient --image=python:3.12-slim \
+  --restart=Never --command -- sleep 3600
+kubectl -n centrifugo wait --for=condition=Ready pod/wsclient --timeout=120s
+
+kubectl -n centrifugo exec wsclient -c wsclient -- pip install --quiet websockets
+
+kubectl -n centrifugo exec wsclient -c wsclient -- python -c '
+import asyncio, json, websockets
+async def main():
+    uri = "ws://centrifugo.centrifugo.svc.cluster.local:8000/connection/websocket"
+    async with websockets.connect(uri, subprotocols=["centrifuge-json"]) as ws:
+        print("handshake OK, subprotocol:", ws.subprotocol)
+        await ws.send(json.dumps({"connect": {}, "id": 1}))
+        print("reply:", await asyncio.wait_for(ws.recv(), timeout=5))
+asyncio.run(main())
+'
+# -> handshake OK, subprotocol: centrifuge-json
+#    reply: {"id":1,"connect":{"client":"...","version":"6.8.4 OSS","ping":25,"pong":true}}
+```
+
+A `connect` reply means the WebSocket upgrade traversed both Envoy sidecars and reached Centrifugo — no extra Istio configuration required.
+
+### 4. Going Further: Ingress Gateway, TLS and HTTP/2
+
+The steps above prove pod-to-pod (mesh-internal) traffic. To also exercise the edge — a TLS-terminating Istio ingress gateway — and see HTTP/2 coexisting with WebSocket, continue here.
+
+Create a self-signed certificate and expose it to the ingress gateway:
+
+```bash
+openssl req -x509 -newkey rsa:2048 -nodes -days 2 \
+  -keyout key.pem -out cert.pem \
+  -subj "/CN=cent.local" -addext "subjectAltName=DNS:cent.local"
+
+kubectl -n istio-system create secret tls cent-tls --cert=cert.pem --key=key.pem
+```
+
+Define a `Gateway` (TLS on 443) and a `VirtualService` routing to the external port:
+
+```yaml
+# gateway.yaml
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: cent-gw
+  namespace: centrifugo
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: cent-tls
+      hosts:
+        - cent.local
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: cent-vs
+  namespace: centrifugo
+spec:
+  hosts:
+    - cent.local
+  gateways:
+    - cent-gw
+  http:
+    - route:
+        - destination:
+            host: centrifugo.centrifugo.svc.cluster.local
+            port:
+              number: 8000
+```
+
+```bash
+kubectl apply -f gateway.yaml
+```
+
+Port-forward to the ingress gateway (a plain TCP forward, so TLS and ALPN negotiation pass through untouched):
+
+```bash
+kubectl -n istio-system port-forward svc/istio-ingressgateway 8443:443 &
+```
+
+**A normal request negotiates HTTP/2** through the gateway:
+
+```bash
+curl -sk --http2 --resolve cent.local:8443:127.0.0.1 \
+  https://cent.local:8443/connection/websocket \
+  -o /dev/null -w "negotiated: HTTP/%{http_version}  status=%{http_code}\n"
+# -> negotiated: HTTP/2  status=400
+```
+
+(The `400` is expected — it's a plain GET on the WebSocket path — but it proves the request reached Centrifugo over HTTP/2.)
+
+**A WebSocket through the same TLS gateway uses HTTP/1.1** and succeeds. Run it from the in-mesh client pod against the gateway (SNI `cent.local`):
+
+```bash
+IGIP=$(kubectl -n istio-system get svc istio-ingressgateway -o jsonpath='{.spec.clusterIP}')
+
+kubectl -n centrifugo exec wsclient -c wsclient -- python -c '
+import asyncio, json, ssl, websockets
+ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+ctx.set_alpn_protocols(["http/1.1"])   # RFC 6455 WebSocket uses HTTP/1.1
+async def main():
+    uri = "wss://cent.local:443/connection/websocket"
+    async with websockets.connect(uri, ssl=ctx, server_hostname="cent.local",
+                                  host="'"$IGIP"'", port=443,
+                                  subprotocols=["centrifuge-json"]) as ws:
+        alpn = ws.transport.get_extra_info("ssl_object").selected_alpn_protocol()
+        print("edge handshake OK, alpn:", alpn)
+        await ws.send(json.dumps({"connect": {}, "id": 1}))
+        print("reply:", await asyncio.wait_for(ws.recv(), timeout=5))
+asyncio.run(main())
+'
+# -> edge handshake OK, alpn: http/1.1
+#    reply: {"id":1,"connect":{"client":"...","version":"6.8.4 OSS",...}}
+```
+
+This is the whole story in one place: the gateway serves **HTTP/2 for ordinary requests** while **WebSocket rides HTTP/1.1**, and both work with no special configuration.
+A browser that supports [WebSocket over HTTP/2 (RFC 8441)](https://centrifugal.dev/docs/transports/websocket#websocket-over-http2-rfc-8441) reaches the same outcome automatically — it only attempts Extended CONNECT when the edge advertises `SETTINGS_ENABLE_CONNECT_PROTOCOL`, which Istio does not do by default, so it falls back to HTTP/1.1.
+(Enabling true WebSocket-over-HTTP/2 end-to-end is opt-in on both Centrifugo and Istio — see the README.)
+
+Stop the port-forward when done:
+
+```bash
+kill %1   # the backgrounded port-forward
+```
+
+### 5. Cleanup
+
+```bash
+minikube delete --profile=centrifugo-istio
+```
 
 ---
 
