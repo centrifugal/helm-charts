@@ -160,8 +160,19 @@ service:
   annotations: {}
   # Provide any additional labels which may be required
   labels: {}
-  # Specify custom appProtocol for a service port.
-  appProtocol: ""
+  # appProtocol for this port. Advertises the L7 protocol so a service mesh
+  # (Istio, Linkerd, ...) routes it correctly without extra config. By default
+  # the external port speaks HTTP/1.1, serving WebSocket, HTTP streaming/SSE and
+  # emulation, so "http" is correct - Istio's http protocol passes WebSocket
+  # upgrades and does not buffer streaming responses.
+  # Change it only if you run the port differently:
+  #   - "https" if Centrifugo terminates TLS on this port itself.
+  #   - "http2" if you enable Centrifugo's WebSocket-over-HTTP/2 (RFC 8441). That
+  #     also needs TLS or http_server.h2c_external on Centrifugo, and passing WS
+  #     over HTTP/2 through Istio requires enabling Extended CONNECT on the mesh
+  #     (an EnvoyFilter with allow_connect - no Istio-native switch yet).
+  # Set to "" to omit the field entirely.
+  appProtocol: "http"
 
 # Internal service configuration.
 # By default, internal port is exposed on the main service above.
@@ -182,8 +193,10 @@ serviceInternal:
   # Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   # Only used when useSeparate=true (separate service).
   clusterIP: ""
-  # Custom appProtocol for this port. Used in both modes.
-  appProtocol: ""
+  # appProtocol for this port. Advertises the L7 protocol to a service mesh.
+  # The internal port serves the HTTP server API, health checks, Prometheus
+  # metrics and admin UI - all HTTP - so "http" is correct. Set to "" to omit.
+  appProtocol: "http"
   # Service annotations. Only used when useSeparate=true (separate service).
   annotations: {}
   # Service labels. Only used when useSeparate=true (separate service).
@@ -208,8 +221,9 @@ serviceGrpc:
   # Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   # Only used when useSeparate=true (separate service).
   clusterIP: ""
-  # Custom appProtocol for this port. Used in both modes.
-  appProtocol: ""
+  # appProtocol for this port. "grpc" lets a service mesh apply gRPC-aware
+  # routing to the server GRPC API. Set to "" to omit.
+  appProtocol: "grpc"
   # Service annotations. Only used when useSeparate=true (separate service).
   annotations: {}
   # Service labels. Only used when useSeparate=true (separate service).
@@ -234,8 +248,9 @@ serviceUniGrpc:
   # Specify clusterIP for the service. If not specified, Kubernetes will assign one.
   # Only used when useSeparate=true (separate service).
   clusterIP: ""
-  # Custom appProtocol for this port. Used in both modes.
-  appProtocol: ""
+  # appProtocol for this port. "grpc" lets a service mesh apply gRPC-aware
+  # routing to the unidirectional GRPC stream. Set to "" to omit.
+  appProtocol: "grpc"
   # Service annotations. Only used when useSeparate=true (separate service).
   annotations: {}
   # Service labels. Only used when useSeparate=true (separate service).
