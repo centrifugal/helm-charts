@@ -956,7 +956,9 @@ Open <http://localhost:3000> (username: `admin`, password from above).
 
 ## Local Testing with Istio (Minikube)
 
-This walkthrough runs Centrifugo under [Istio](https://istio.io/) on a local Minikube cluster so you can confirm that WebSocket, HTTP streaming/SSE and the gRPC APIs work through a service mesh. It also shows *why* the chart sets an [`appProtocol`](https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol) on every Service port (see the [Service Mesh (Istio)](README.md#service-mesh-istio) section of the README). Every command below was run and verified against Istio 1.27.
+This walkthrough runs Centrifugo under [Istio](https://istio.io/) on a local Minikube cluster so you can confirm that WebSocket, HTTP streaming/SSE and the gRPC APIs work through a service mesh.
+It also shows *why* the chart sets an [`appProtocol`](https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol) on every Service port (see the [Service Mesh (Istio)](README.md#service-mesh-istio) section of the README).
+Every command below was run and verified against Istio 1.27.
 
 **Prerequisites:** a running Docker, plus `minikube`, `kubectl`, `helm`, and `istioctl`. Istio's [getting-started guide](https://istio.io/latest/docs/setup/getting-started/#download) covers installing `istioctl`; make sure it is on your `PATH`.
 
@@ -1163,7 +1165,9 @@ asyncio.run(main())
 #    reply: {"id":1,"connect":{"client":"...","version":"6.8.4 OSS",...}}
 ```
 
-This is the whole story in one place: the gateway serves **HTTP/2 for ordinary requests** while **WebSocket rides HTTP/1.1**, and both work with no special configuration. A browser that supports [WebSocket over HTTP/2 (RFC 8441)](https://centrifugal.dev/docs/transports/websocket#websocket-over-http2-rfc-8441) reaches the same outcome automatically — it only attempts Extended CONNECT when the edge advertises `SETTINGS_ENABLE_CONNECT_PROTOCOL`, which Istio does not do by default, so it falls back to HTTP/1.1. (Enabling true WebSocket-over-HTTP/2 end-to-end is opt-in on both Centrifugo and Istio — see the README.)
+This is the whole story in one place: the gateway serves **HTTP/2 for ordinary requests** while **WebSocket rides HTTP/1.1**, and both work with no special configuration.
+A browser that supports [WebSocket over HTTP/2 (RFC 8441)](https://centrifugal.dev/docs/transports/websocket#websocket-over-http2-rfc-8441) reaches the same outcome automatically — it only attempts Extended CONNECT when the edge advertises `SETTINGS_ENABLE_CONNECT_PROTOCOL`, which Istio does not do by default, so it falls back to HTTP/1.1.
+(Enabling true WebSocket-over-HTTP/2 end-to-end is opt-in on both Centrifugo and Istio — see the README.)
 
 Stop the port-forward when done:
 
