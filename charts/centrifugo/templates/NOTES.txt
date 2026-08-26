@@ -2,6 +2,10 @@ Centrifugo has been installed successfully!
 
 {{- $fullName := include "centrifugo.fullname" . }}
 {{- $namespace := .Release.Namespace }}
+{{- $internalSvcName := $fullName }}
+{{- if .Values.serviceInternal.useSeparate }}
+{{- $internalSvcName = printf "%s-internal" $fullName }}
+{{- end }}
 
 === ACCESSING CENTRIFUGO ===
 
@@ -56,7 +60,7 @@ External port (client connections):
 
 Internal port provides: API, Prometheus metrics, admin UI, health checks.
 
-  kubectl --namespace {{ $namespace }} port-forward svc/{{ $fullName }} {{ .Values.serviceInternal.port }}:{{ .Values.serviceInternal.port }}
+  kubectl --namespace {{ $namespace }} port-forward svc/{{ $internalSvcName }} {{ .Values.serviceInternal.port }}:{{ .Values.serviceInternal.port }}
 
   - Admin UI:    http://localhost:{{ .Values.serviceInternal.port }}/admin
   - Metrics:     http://localhost:{{ .Values.serviceInternal.port }}/metrics
