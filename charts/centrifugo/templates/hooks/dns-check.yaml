@@ -7,10 +7,10 @@ metadata:
   labels:
     {{- include "centrifugo.labels" . | nindent 4 }}
     tier: host-check
+  {{- with .Values.hostCheck.annotations }}
   annotations:
-    {{- if .Values.hostCheck.annotations }}
-    {{- toYaml .Values.hostCheck.annotations | nindent 4 }}
-    {{- end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   template:
     metadata:
