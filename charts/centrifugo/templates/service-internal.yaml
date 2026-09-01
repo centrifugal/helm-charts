@@ -26,7 +26,7 @@ spec:
       appProtocol: {{ .Values.serviceInternal.appProtocol }}
       {{- end }}
       name: internal
-      {{- if (and (eq .Values.serviceInternal.type "NodePort") (not (empty .Values.serviceInternal.nodePort))) }}
+      {{- if (and (or (eq .Values.serviceInternal.type "NodePort") (eq .Values.serviceInternal.type "LoadBalancer")) (not (empty .Values.serviceInternal.nodePort))) }}
       nodePort: {{ .Values.serviceInternal.nodePort }}
       {{- end }}
   selector:
