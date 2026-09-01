@@ -26,7 +26,7 @@ spec:
       appProtocol: {{ .Values.serviceGrpc.appProtocol }}
       {{- end }}
       name: grpc
-      {{- if (and (eq .Values.serviceGrpc.type "NodePort") (not (empty .Values.serviceGrpc.nodePort))) }}
+      {{- if (and (or (eq .Values.serviceGrpc.type "NodePort") (eq .Values.serviceGrpc.type "LoadBalancer")) (not (empty .Values.serviceGrpc.nodePort))) }}
       nodePort: {{ .Values.serviceGrpc.nodePort }}
       {{- end }}
   selector:

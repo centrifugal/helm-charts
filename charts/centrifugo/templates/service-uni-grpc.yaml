@@ -26,7 +26,7 @@ spec:
       appProtocol: {{ .Values.serviceUniGrpc.appProtocol }}
       {{- end }}
       name: uni-grpc
-      {{- if (and (eq .Values.serviceUniGrpc.type "NodePort") (not (empty .Values.serviceUniGrpc.nodePort))) }}
+      {{- if (and (or (eq .Values.serviceUniGrpc.type "NodePort") (eq .Values.serviceUniGrpc.type "LoadBalancer")) (not (empty .Values.serviceUniGrpc.nodePort))) }}
       nodePort: {{ .Values.serviceUniGrpc.nodePort }}
       {{- end }}
   selector:
