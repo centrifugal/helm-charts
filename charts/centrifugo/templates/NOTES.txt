@@ -1,7 +1,7 @@
 Centrifugo has been installed successfully!
 
 {{- $fullName := include "centrifugo.fullname" . }}
-{{- $namespace := .Release.Namespace }}
+{{- $namespace := include "centrifugo.namespace" . }}
 {{- $internalSvcName := $fullName }}
 {{- if .Values.serviceInternal.useSeparate }}
 {{- $internalSvcName = printf "%s-internal" $fullName }}
