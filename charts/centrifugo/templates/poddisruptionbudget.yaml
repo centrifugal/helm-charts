@@ -1,4 +1,9 @@
 {{- if .Values.podDisruptionBudget.enabled }}
+{{- $minAvailable := .Values.podDisruptionBudget.minAvailable }}
+{{- $maxUnavailable := .Values.podDisruptionBudget.maxUnavailable }}
+{{- /* Treat null/empty as unset, but keep 0 which is a valid budget value. */}}
+{{- $hasMinAvailable := not (or (kindIs "invalid" $minAvailable) (eq (toString $minAvailable) "")) }}
+{{- $hasMaxUnavailable := not (or (kindIs "invalid" $maxUnavailable) (eq (toString $maxUnavailable) "")) }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -10,10 +15,10 @@ spec:
   selector:
     matchLabels:
       {{- include "centrifugo.selectorLabels" . | nindent 6 }}
-  {{- if .Values.podDisruptionBudget.minAvailable }}
-  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
-  {{- end }}
-  {{- if .Values.podDisruptionBudget.maxUnavailable }}
-  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- /* Kubernetes rejects a PDB with both fields set, so maxUnavailable wins over the minAvailable default. */}}
+  {{- if $hasMaxUnavailable }}
+  maxUnavailable: {{ $maxUnavailable }}
+  {{- else if $hasMinAvailable }}
+  minAvailable: {{ $minAvailable }}
   {{- end }}
 {{- end }}

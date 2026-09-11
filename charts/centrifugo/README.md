@@ -1337,8 +1337,8 @@ initContainers:
 | `affinity` | Affinity rules for pod assignment | `{}` |
 | `topologySpreadConstraints` | Topology spread constraints | `[]` |
 | `podDisruptionBudget.enabled` | Enable PodDisruptionBudget | `false` |
-| `podDisruptionBudget.minAvailable` | Minimum available pods | `nil` |
-| `podDisruptionBudget.maxUnavailable` | Maximum unavailable pods | `nil` |
+| `podDisruptionBudget.minAvailable` | Minimum available pods (ignored when `maxUnavailable` is set) | `1` |
+| `podDisruptionBudget.maxUnavailable` | Maximum unavailable pods (takes precedence over `minAvailable`) | `nil` |
 
 ### Pod-Level Parameters
 
