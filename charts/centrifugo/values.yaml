@@ -599,10 +599,10 @@ topologySpreadConstraints: []
 podDisruptionBudget:
   enabled: false
   # Minimum number/percentage of pods that must remain available during disruption.
-  # Cannot be used together with maxUnavailable.
+  # Ignored when maxUnavailable is set.
   minAvailable: 1
   # Maximum number/percentage of pods that can be unavailable during disruption.
-  # Cannot be used together with minAvailable.
+  # When set (including 0), it is used instead of minAvailable.
   # maxUnavailable: 1
 
 # ============================================
