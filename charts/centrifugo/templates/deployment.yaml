@@ -14,8 +14,9 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
-  {{- with .Values.revisionHistoryLimit }}
-  revisionHistoryLimit: {{ . }}
+  {{- /* Treat null/empty as unset, but keep 0 which means no old ReplicaSets are retained. */}}
+  {{- if not (or (kindIs "invalid" .Values.revisionHistoryLimit) (eq (toString .Values.revisionHistoryLimit) "")) }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   {{- end }}
   selector:
     matchLabels:
