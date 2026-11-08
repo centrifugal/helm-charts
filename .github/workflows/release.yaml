@@ -28,7 +28,7 @@ jobs:
           echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.7.0
+        uses: helm/chart-releaser-action@v1.9.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
