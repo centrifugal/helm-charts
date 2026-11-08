@@ -15,10 +15,6 @@ jobs:
       - name: Fetch history
         run: git fetch --prune --unshallow
 
-      - name: login to github container registry using helm
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io/centrifugal/helm-charts --username ${{ github.repository_owner }} --password-stdin
-
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
@@ -26,6 +22,10 @@ jobs:
 
       - name: Set up helm
         uses: azure/setup-helm@v5
+
+      - name: login to github container registry using helm
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0
